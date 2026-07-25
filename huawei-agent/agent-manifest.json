@@ -1,0 +1,110 @@
+{
+  "agent": {
+    "name": "灵犀 LingXi",
+    "version": "1.0.0",
+    "type": "cloud-workflow",
+    "description": "面向鸿蒙全场景的个人AI学习陪伴Agent。感知天气、学习状态、情绪和用户偏好，主动进行智慧决策，提供穿搭推荐、学习规划、心理树洞陪伴、多端协同等智能服务。",
+    "category": "教育学习",
+    "developer": {
+      "name": "灵犀团队",
+      "contact": "jingyu-cyber"
+    }
+  },
+  "platform": {
+    "mode": "云工作流模式",
+    "supported_devices": {
+      "phone": {
+        "systems": ["HarmonyOS Next", "HarmonyOS"],
+        "features": ["语音对话", "知识学习", "穿搭推荐", "情绪陪伴"]
+      },
+      "tablet": {
+        "systems": ["HarmonyOS Next", "HarmonyOS"],
+        "features": ["知识树图谱", "学习路径规划", "PDF文献精读", "PPT生成"]
+      },
+      "watch": {
+        "systems": ["HarmonyOS Next"],
+        "features": ["闪卡复习", "学习提醒", "心情速记"]
+      },
+      "headphone": {
+        "systems": ["HarmonyOS"],
+        "features": ["语音问答", "听书学习", "伴随复习"]
+      },
+      "smart_screen": {
+        "systems": ["HarmonyOS"],
+        "features": ["知识展示", "答辩演示", "大屏学习"]
+      }
+    }
+  },
+  "workflow": {
+    "stages": [
+      {
+        "name": "感知 Sense",
+        "description": "多模态环境感知：采集天气、时间、学习状态、用户情绪数据",
+        "inputs": ["天气API", "学习数据库", "用户画像", "时间上下文"],
+        "output": "环境上下文对象"
+      },
+      {
+        "name": "决策 Decide",
+        "description": "AI 分析上下文，匹配用户意图，选择最优 Skill 并生成建议",
+        "inputs": ["上下文对象", "用户意图", "Skill注册表"],
+        "output": "决策建议列表"
+      },
+      {
+        "name": "执行 Act",
+        "description": "执行决策结果，推送通知或返回建议内容",
+        "inputs": ["决策建议"],
+        "output": "用户可见的推荐内容"
+      }
+    ]
+  },
+  "skills": [
+    {
+      "name": "天气感知Skill",
+      "intents": ["查询天气", "今日温度", "会不会下雨", "穿什么"],
+      "api": "/weather/current",
+      "method": "GET"
+    },
+    {
+      "name": "学习管理Skill",
+      "intents": ["学习", "复习", "编译视频", "知识树", "学习路径"],
+      "api": "/tree/stats",
+      "method": "GET"
+    },
+    {
+      "name": "陪伴树洞Skill",
+      "intents": ["心情不好", "情绪", "树洞", "陪伴", "倾听"],
+      "api": "/chat/ask",
+      "method": "POST"
+    },
+    {
+      "name": "穿搭美妆Skill",
+      "intents": ["穿搭", "化妆", "今天穿什么", "妆容推荐"],
+      "api": "/agent/pipeline",
+      "method": "GET"
+    },
+    {
+      "name": "智慧决策Skill",
+      "intents": ["建议", "推荐", "决策", "帮我决定"],
+      "api": "/agent/pipeline",
+      "method": "GET"
+    },
+    {
+      "name": "鸿蒙多端协同Skill",
+      "intents": ["多端", "协同", "手表", "耳机", "投屏"],
+      "api": "/harmony/devices",
+      "method": "GET"
+    }
+  ],
+  "endpoints": {
+    "agent_pipeline": "/agent/pipeline",
+    "skills_list": "/agent/skills",
+    "weather": "/weather/current",
+    "chat": "/chat/ask",
+    "learning_stats": "/tree/stats"
+  },
+  "privacy": {
+    "data_collection": "最小必要原则，仅采集天气查询所需的城市信息",
+    "data_storage": "用户学习数据本地存储(SQLite)，不向第三方传输",
+    "compliance": "遵循华为开发者联盟用户协议和隐私声明"
+  }
+}

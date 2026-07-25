@@ -1,0 +1,22 @@
+{
+  "name": "灵犀 LingXi - 全场景 AI 伙伴",
+  "short_name": "灵犀 LingXi",
+  "description": "面向鸿蒙全场景的个人AI陪伴Agent。九个分区，一个入口，AI 融入你生活的每一面。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

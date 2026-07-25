@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="50%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="50%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <radialGradient id="bgAura" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.12"/>
+      <stop offset="40%" stop-color="#06b6d4" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- 深色背景圆角 -->
+  <rect width="512" height="512" rx="112" fill="#080d16"/>
+
+  <!-- 光晕 -->
+  <circle cx="256" cy="230" r="220" fill="url(#bgAura)"/>
+
+  <!-- === AI轨道环 === -->
+  <circle cx="256" cy="240" r="195" stroke="url(#g1)" stroke-width="2" opacity="0.25" stroke-dasharray="6 28"/>
+  <circle cx="256" cy="240" r="180" stroke="url(#g2)" stroke-width="1.5" opacity="0.2" stroke-dasharray="4 36"/>
+  <circle cx="256" cy="240" r="210" stroke="url(#g1)" stroke-width="1" opacity="0.15" stroke-dasharray="2 44"/>
+
+  <!-- === AI 节点 === -->
+  <circle cx="128" cy="160" r="5" fill="#a78bfa" opacity="0.6" filter="url(#glow)"/>
+  <circle cx="380" cy="130" r="5" fill="#22d3ee" opacity="0.6" filter="url(#glow)"/>
+  <circle cx="120" cy="330" r="5" fill="#34d399" opacity="0.6" filter="url(#glow)"/>
+  <circle cx="390" cy="320" r="5" fill="#a78bfa" opacity="0.6" filter="url(#glow)"/>
+
+  <!-- === 知识树 === -->
+  <g filter="url(#glow)">
+    <path d="M256 390 L256 310" stroke="url(#g1)" stroke-width="7" stroke-linecap="round"/>
+    <path d="M256 350 L218 285" stroke="url(#g1)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M256 350 L294 285" stroke="url(#g2)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M218 285 L190 240" stroke="#34d399" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M218 285 L238 235" stroke="#06b6d4" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M294 285 L274 235" stroke="#22d3ee" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M294 285 L322 240" stroke="#a78bfa" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 知识节点 -->
+    <circle cx="256" cy="310" r="10" fill="#fff" opacity="0.9"/>
+    <circle cx="218" cy="285" r="8" fill="#34d399"/>
+    <circle cx="294" cy="285" r="8" fill="#22d3ee"/>
+    <circle cx="238" cy="235" r="6" fill="#34d399" opacity="0.8"/>
+    <circle cx="274" cy="235" r="6" fill="#a78bfa" opacity="0.8"/>
+    <circle cx="190" cy="240" r="6" fill="#22d3ee" opacity="0.7"/>
+    <circle cx="322" cy="240" r="6" fill="#a78bfa" opacity="0.7"/>
+  </g>
+
+  <!-- === 核心：视频+AI结晶 === -->
+  <g filter="url(#glow)">
+    <circle cx="256" cy="220" r="62" fill="#0a0f1a" stroke="url(#g1)" stroke-width="3.5"/>
+    <circle cx="256" cy="220" r="52" stroke="url(#g2)" stroke-width="1.2" opacity="0.4" stroke-dasharray="10 8"/>
+    <polygon points="240,196 240,244 280,220" fill="url(#g1)"/>
+    <circle cx="256" cy="180" r="3" fill="#fff" opacity="0.6"/>
+    <circle cx="256" cy="260" r="3" fill="#fff" opacity="0.6"/>
+    <circle cx="200" cy="220" r="3" fill="#fff" opacity="0.6"/>
+    <circle cx="312" cy="220" r="3" fill="#fff" opacity="0.6"/>
+  </g>
+
+  <!-- === 二次元星光 === -->
+  <g fill="url(#g1)" filter="url(#glow)">
+    <path d="M155 125 L157 134 L166 136 L157 138 L155 147 L153 138 L144 136 L153 134 Z" opacity="0.8"/>
+    <path d="M365 155 L366 161 L372 162 L366 163 L365 169 L364 163 L358 162 L364 161 Z" opacity="0.7"/>
+    <path d="M145 370 L146 375 L150 376 L146 377 L145 382 L144 377 L140 376 L144 375 Z" opacity="0.7"/>
+    <path d="M375 350 L376 355 L380 356 L376 357 L375 362 L374 357 L370 356 L374 355 Z" opacity="0.8"/>
+    <path d="M210 100 L211 105 L215 106 L211 107 L210 112 L209 107 L205 106 L209 105 Z" opacity="0.6"/>
+    <path d="M310 400 L311 404 L314 405 L311 406 L310 410 L309 406 L306 405 L309 404 Z" opacity="0.6"/>
+  </g>
+
+  <!-- 底部光条 -->
+  <ellipse cx="256" cy="430" rx="100" ry="6" fill="url(#g1)" opacity="0.08"/>
+</svg>

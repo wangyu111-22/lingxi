@@ -1,0 +1,13 @@
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.venv/
+logs/
+data/*.db
+data/chroma_db/
+data/asr_tmp/
+.npm-cache/
+tmp/
+*.zip
+*.tar.gz
