@@ -37,6 +37,7 @@ from app.routers import proactive  # 鸿蒙 Agent 创新赛：主动服务
 from app.routers import weather_api  # 天气 API（Open-Meteo免费）
 from app.routers import face_analysis  # 面部识别分析
 from app.routers import agent_orchestrator  # 灵犀 Agent 编排引擎
+from app.routers import system_status
 
 
 # 配置日志
@@ -128,6 +129,7 @@ app.include_router(proactive.router)  # 鸿蒙 Agent 创新赛：主动服务
 app.include_router(weather_api.router)  # 天气 API
 app.include_router(face_analysis.router)  # 面部分析
 app.include_router(agent_orchestrator.router)  # Agent 编排引擎
+app.include_router(system_status.router)
 
 
 @app.get("/")
@@ -155,4 +157,3 @@ if __name__ == "__main__":
         port=settings.app_port,
         reload=settings.debug
     )
-

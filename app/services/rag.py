@@ -34,6 +34,8 @@ class RAGService:
             collection_name: 向量集合名称
         """
         self.collection_name = collection_name
+        self.embedding_provider = "chroma-local"
+        self.embedding_attempts = []
         
         # 初始化 Embeddings — 四级降级策略
         self.embeddings = None
@@ -55,26 +57,33 @@ class RAGService:
                         sk=settings.huawei_sk,
                     )
                     self.embeddings.embed_query("test")
+                    self.embedding_provider = "huawei"
+                    self.embedding_attempts.append({"provider": "huawei", "status": "ready"})
                     logger.info("使用华为盘古 Embedding 初始化成功")
                 except Exception as e:
                     logger.info(f"华为盘古 Embedding 不可用: {e}")
+                    self.embedding_attempts.append({"provider": "huawei", "status": "unavailable"})
                     self.embeddings = None
 
             # 1) 尝试 DashScope
-            try:
-                from langchain_community.embeddings import DashScopeEmbeddings
-                self.embeddings = DashScopeEmbeddings(
-                    dashscope_api_key=settings.openai_api_key,
-                    model=settings.embedding_model
-                )
-                self.embeddings.embed_query("test")
-                logger.info("使用 DashScopeEmbeddings 初始化成功")
-            except Exception as e:
-                logger.info(f"DashScopeEmbeddings 不可用: {e}")
-                self.embeddings = None
+            if self.embeddings is None and settings.openai_api_key:
+                try:
+                    from langchain_community.embeddings import DashScopeEmbeddings
+                    self.embeddings = DashScopeEmbeddings(
+                        dashscope_api_key=settings.openai_api_key,
+                        model=settings.embedding_model
+                    )
+                    self.embeddings.embed_query("test")
+                    self.embedding_provider = "dashscope"
+                    self.embedding_attempts.append({"provider": "dashscope", "status": "ready"})
+                    logger.info("使用 DashScopeEmbeddings 初始化成功")
+                except Exception as e:
+                    logger.info(f"DashScopeEmbeddings 不可用: {e}")
+                    self.embedding_attempts.append({"provider": "dashscope", "status": "unavailable"})
+                    self.embeddings = None
 
             # 2) 尝试 OpenAI 兼容接口
-            if self.embeddings is None:
+            if self.embeddings is None and settings.openai_api_key:
                 try:
                     self.embeddings = OpenAIEmbeddings(
                         api_key=settings.openai_api_key,
@@ -83,13 +92,17 @@ class RAGService:
                         check_embedding_ctx_length=False
                     )
                     self.embeddings.embed_query("test")
+                    self.embedding_provider = "openai-compatible"
+                    self.embedding_attempts.append({"provider": "openai-compatible", "status": "ready"})
                     logger.info("使用 OpenAIEmbeddings 初始化成功")
                 except Exception as e:
                     logger.info(f"OpenAIEmbeddings 不可用: {e}")
+                    self.embedding_attempts.append({"provider": "openai-compatible", "status": "unavailable"})
                     self.embeddings = None
 
             # 3) Fallback: 本地 sentence-transformers
             if self.embeddings is None:
+                self.embedding_provider = "chroma-local"
                 logger.info("使用 ChromaDB 默认本地 Embedding (all-MiniLM-L6-v2)")
         
         # 初始化向量存储
@@ -100,7 +113,7 @@ class RAGService:
         if self.embeddings is not None:
             chroma_kwargs["embedding_function"] = self.embeddings
         self.vectorstore = Chroma(**chroma_kwargs)
-        
+
         # 初始化 LLM — 走统一 Provider（支持 DashScope / 星火切换）
         # 注意：Embedding 层仍走 DashScope（星火暂不支持兼容的 Embedding API）
         from app.services.llm_provider import get_llm_config
@@ -163,6 +176,21 @@ class RAGService:
             ("human", "{content}")
         ])
     
+    def get_embedding_status(self) -> dict:
+        """返回当前向量服务状态，不包含任何密钥或敏感配置。"""
+        return {
+            "provider": self.embedding_provider,
+            "ready": self.vectorstore is not None,
+            "remote": self.embeddings is not None,
+            "model": (
+                settings.huawei_embedding_model
+                if self.embedding_provider == "huawei"
+                else settings.embedding_model
+            ),
+            "fallback_active": self.embedding_provider == "chroma-local",
+            "attempts": list(self.embedding_attempts),
+        }
+
     def add_video_content(self, video: VideoContent, session_id: Optional[str] = None) -> int:
         """
         添加单个视频内容到向量库
