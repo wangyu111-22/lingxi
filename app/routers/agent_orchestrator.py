@@ -9,11 +9,15 @@
 from __future__ import annotations
 
 import httpx
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent_engine.skills import get_all_skills, match_intent, LINGXI_SKILLS
+from app.database import get_db
+from app.routers.auth import get_session
+from app.services.agent_context import build_agent_context
 
 router = APIRouter(prefix="/agent", tags=["Agent编排"])
 
@@ -30,12 +34,7 @@ async def list_skills():
     return {"agent": "灵犀 LingXi", "version": "1.0", "skills": get_all_skills()}
 
 
-@router.get("/pipeline")
-async def agent_pipeline(query: str = Query("", description="用户意图描述"), city: str = Query("北京")):
-    """Agent 核心流水线：感知 → 决策 → 执行"""
-    ctx = {}
-
-    # 1. 感知 (Sense) — 获取环境上下文
+async def _fetch_weather(city: str) -> dict:
     try:
         lat, lon = CITY_COORDS.get(city, (39.9, 116.4))
         async with httpx.AsyncClient(timeout=8) as c:
@@ -45,55 +44,132 @@ async def agent_pipeline(query: str = Query("", description="用户意图描述"
                 "timezone": "Asia/Shanghai",
             })
         w = r.json().get("current", {})
-        ctx["weather"] = {
+        return {
             "city": city,
             "temp": w.get("temperature_2m"),
             "condition": WCODE.get(w.get("weather_code", 0), "未知"),
+            "weather_code": w.get("weather_code", 0),
         }
     except Exception:
-        ctx["weather"] = {"city": city, "temp": 25, "condition": "未知"}
+        return {"city": city, "temp": None, "condition": "未知", "weather_code": 0}
 
-    ctx["time"] = __import__("datetime").datetime.now().strftime("%H:%M")
-    ctx["learning"] = {"nodes": 7, "pending_review": 3, "videos": 1}
-    ctx["emotion"] = "良好"
 
-    # 2. 决策 (Decide) — 匹配意图，选择 Skill
-    matched_skills = match_intent(query) if query else ["weather", "learning", "companion", "beauty"]
+def _build_decisions(query: str, ctx: dict, matched_skills: list[str]) -> list[dict]:
+    learning = ctx["learning"]
+    weather = ctx["weather"]
+    reasons = [
+        f"{ctx['time']['period']} {ctx['time']['clock']}，适合 {'轻复习' if ctx['time']['period'] in ['晚间', '深夜'] else '集中学习'}",
+        f"知识树 {learning['nodes']} 个节点、{learning['compiled_videos']} 个已编译视频、{learning['due_reviews']} 个待复习",
+        f"{weather['city']}天气为{weather.get('condition', '未知')}，温度{weather.get('temp') or '--'}°C",
+    ]
+    if ctx["memory"]["recent_user_messages"]:
+        reasons.append("结合最近对话：" + " / ".join(ctx["memory"]["recent_user_messages"][:2]))
+    return [
+        {
+            "id": "intent-match",
+            "title": "意图识别",
+            "detail": query or "用户未输入明确指令，进入综合主动服务模式",
+            "evidence": matched_skills,
+        },
+        {
+            "id": "context-reasoning",
+            "title": "上下文推理",
+            "detail": "；".join(reasons),
+            "evidence": ctx["profile"]["weak_points"],
+        },
+    ]
 
-    # 3. 执行 (Act) — 生成建议
-    suggestions = []
+
+def _build_actions(ctx: dict, matched_skills: list[str]) -> list[dict]:
+    actions: list[dict] = []
+    learning = ctx["learning"]
+    weather = ctx["weather"]
     for sk in matched_skills:
         skill = LINGXI_SKILLS.get(sk)
         if not skill:
             continue
-        if sk == "weather":
-            t = ctx["weather"]["temp"]
-            cond = ctx["weather"]["condition"]
-            suggestions.append({
-                "skill": skill.name,
-                "action": "穿搭建议",
-                "result": f"{ctx['weather']['city']} {t}°C {cond}，建议{'轻薄透气' if t and t > 30 else '舒适休闲' if t and t > 20 else '保暖叠穿'}穿搭",
-            })
-        elif sk == "learning":
-            suggestions.append({
-                "skill": skill.name,
-                "action": "学习提醒",
-                "result": f"当前 {ctx['learning']['nodes']} 个知识节点，{ctx['learning']['pending_review']} 个待复习，建议优先复习",
-            })
+        if sk == "learning":
+            target = "/review" if learning["due_reviews"] > 0 else "/workspace"
+            result = (
+                f"优先处理 {learning['due_reviews']} 个待复习节点"
+                if learning["due_reviews"] > 0
+                else f"当前已编译 {learning['compiled_videos']} 个视频，可继续编译或生成学习路径"
+            )
+        elif sk == "weather":
+            target = "/beauty/outfit"
+            result = f"{weather['city']} {weather.get('condition', '未知')} {weather.get('temp') or '--'}°C，生成出行与穿搭建议"
         elif sk == "companion":
-            suggestions.append({
-                "skill": skill.name,
-                "action": "情绪关怀",
-                "result": "今日情绪状态良好，记得保持积极心态！需要树洞倾诉吗？",
-            })
+            target = "/emotion"
+            result = f"情绪状态：{ctx['emotion']}，结合最近对话提供陪伴回应"
+        elif sk == "beauty":
+            target = "/beauty"
+            result = "结合天气和个人画像生成穿搭/妆容建议"
+        elif sk == "harmony":
+            target = "/harmony"
+            result = "转换为手机、手表、耳机、平板、智慧屏可展示的跨端卡片"
+        else:
+            target = "/decision"
+            result = "综合学习、天气、时间、情绪生成下一步行动"
+        actions.append({
+            "skill": skill.name,
+            "type": "open_page",
+            "label": skill.actions[0] if skill.actions else "查看",
+            "target": target,
+            "result": result,
+            "devices": skill.devices,
+        })
+    return actions
 
+
+async def _run_pipeline(query: str, city: str, session_id: str | None, db: AsyncSession) -> dict:
+    weather = await _fetch_weather(city)
+    ctx = await build_agent_context(db, session_id=session_id, city=city, weather=weather)
+    matched_skills = match_intent(query) if query else ["weather", "learning", "companion", "beauty"]
+    decisions = _build_decisions(query, ctx, matched_skills)
+    actions = _build_actions(ctx, matched_skills)
+    stages = [
+        {
+            "key": "sense",
+            "title": "感知 Sense",
+            "summary": "读取时间、天气、知识树、复习、记忆和最近对话",
+            "items": [
+                {"label": "时间", "value": f"{ctx['time']['period']} {ctx['time']['clock']}"},
+                {"label": "天气", "value": f"{ctx['weather']['city']} {ctx['weather'].get('condition', '未知')} {ctx['weather'].get('temp') or '--'}°C"},
+                {"label": "学习", "value": f"{ctx['learning']['nodes']} 节点 / {ctx['learning']['compiled_videos']} 视频 / {ctx['learning']['due_reviews']} 待复习"},
+                {"label": "记忆", "value": f"{ctx['memory']['nodes']} 条记忆 / {len(ctx['memory']['recent_user_messages'])} 条近期对话"},
+            ],
+        },
+        {"key": "decide", "title": "决策 Decide", "summary": "匹配意图并选择可执行 Skill", "items": decisions},
+        {"key": "act", "title": "执行 Act", "summary": "生成页面动作、跨端卡片和小艺回复", "items": actions},
+    ]
     return {
         "pipeline": "Sense → Decide → Act",
         "context": ctx,
         "intent": query or "综合感知",
+        "matched_skill_keys": matched_skills,
         "matched_skills": [LINGXI_SKILLS[s].name for s in matched_skills if s in LINGXI_SKILLS],
-        "suggestions": suggestions,
+        "stages": stages,
+        "suggestions": actions,
+        "actions": actions,
+        "xiaoyi_ready": {
+            "webhook": "/agent/xiaoyi/webhook",
+            "interaction": ["text", "voice", "card", "cross-device"],
+            "devices": sorted({d for a in actions for d in a.get("devices", [])}),
+        },
     }
+
+
+@router.get("/pipeline")
+async def agent_pipeline(
+    query: str = Query("", description="用户意图描述"),
+    city: str = Query("北京"),
+    session_id: str | None = Query(None, description="会话ID"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Agent 核心流水线：感知 → 决策 → 执行"""
+    if session_id and not await get_session(session_id):
+        session_id = None
+    return await _run_pipeline(query=query, city=city, session_id=session_id, db=db)
 
 
 # ── 小艺 A2A Webhook ────────────────────────────────────
@@ -115,7 +191,7 @@ class XiaoyiResponse(BaseModel):
 
 
 @router.post("/xiaoyi/webhook")
-async def xiaoyi_webhook(request: XiaoyiIntent):
+async def xiaoyi_webhook(request: XiaoyiIntent, db: AsyncSession = Depends(get_db)):
     """
     小艺 A2A Webhook — 接收小艺开放平台转发的用户意图。
 
@@ -133,25 +209,14 @@ async def xiaoyi_webhook(request: XiaoyiIntent):
     device = (request.context or {}).get("device", "phone")
     logger.info(f"小艺 Webhook: utterance='{text[:100]}' intent='{intent_name}' device='{device}'")
 
-    # 1. 匹配灵犀 Skill
-    matched = match_intent(text) if text else ["decision"]
-    primary_skill = matched[0] if matched else "decision"
-
-    # 2. 构建响应
-    skill_map = {
-        "weather": lambda: {"reply": "今天天气不错，适合出门！需要穿搭建议吗？", "card": {"type": "weather", "title": "今日天气"}},
-        "learning": lambda: {"reply": "好的，我来帮你查看学习进度。当前有7个知识节点需要复习。", "card": {"type": "learning", "title": "学习管理"}},
-        "companion": lambda: {"reply": "我在呢，有什么想聊的吗？我可以陪你聊天、帮你排解情绪。", "card": {"type": "companion", "title": "心理树洞"}},
-        "beauty": lambda: {"reply": "让我帮你看看今天的穿搭和妆容推荐~", "card": {"type": "beauty", "title": "美美推荐"}},
-        "decision": lambda: {"reply": "让我综合分析一下，给你最合适的建议。", "card": {"type": "decision", "title": "智慧决策"}},
-        "harmony": lambda: {"reply": f"当前设备: {device}，支持多端协同。", "card": {"type": "harmony", "title": "鸿蒙协同"}},
-    }
-
-    result = skill_map.get(primary_skill, skill_map["decision"])()
+    pipeline = await _run_pipeline(query=text or intent_name, city=(request.slots or {}).get("city", "北京"), session_id=request.session_id or None, db=db)
+    primary_skill = (pipeline.get("matched_skill_keys") or ["decision"])[0]
+    primary_action = (pipeline.get("actions") or [{}])[0]
+    reply = primary_action.get("result") or "我已结合当前上下文完成分析，给你生成下一步建议。"
     return XiaoyiResponse(
-        reply=result["reply"],
-        card=result.get("card"),
-        action={"type": "open_page", "label": "查看详情", "target": f"/agent?skill={primary_skill}"},
+        reply=reply,
+        card={"type": primary_skill, "title": LINGXI_SKILLS.get(primary_skill, LINGXI_SKILLS["decision"]).name, "pipeline": pipeline["pipeline"]},
+        action={"type": "open_page", "label": primary_action.get("label", "查看详情"), "target": primary_action.get("target", f"/agent?skill={primary_skill}")},
     )
 
 

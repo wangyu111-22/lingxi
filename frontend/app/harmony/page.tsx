@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import ZoneShell from "@/components/ZoneShell";
 import VoiceButton from "@/components/VoiceButton";
+import { agentApi, AgentPipelineResponse } from "@/lib/api";
+import { useAuthSession } from "@/lib/session";
 
 function Icon({ children, size = 18 }: { children: React.ReactNode; size?: number }) {
   return (
@@ -31,7 +33,25 @@ const cards = [
 
 export default function HarmonyPage() {
   const [voiceMsg, setVoiceMsg] = useState("");
-  const handleVoice = useCallback((t: string) => { setVoiceMsg(t); setTimeout(() => setVoiceMsg(""), 4000); }, []);
+  const [pipeline, setPipeline] = useState<AgentPipelineResponse | null>(null);
+  const { sessionId } = useAuthSession();
+  const loadPipeline = useCallback((q = "鸿蒙多端协同推送今日学习卡片") => {
+    agentApi.pipeline(q, sessionId).then(setPipeline).catch(() => setPipeline(null));
+  }, [sessionId]);
+  useEffect(() => { loadPipeline(); }, [loadPipeline]);
+  const handleVoice = useCallback((t: string) => {
+    setVoiceMsg(t);
+    loadPipeline(t || "小艺语音跨端协同");
+    setTimeout(() => setVoiceMsg(""), 4000);
+  }, [loadPipeline]);
+  const liveCards = (pipeline?.actions ?? []).map((action: any) => ({
+    title: action.skill,
+    body: action.result,
+    cta: action.label,
+    href: action.target,
+    color: "#059669",
+  }));
+  const displayCards = liveCards.length > 0 ? liveCards : cards;
 
   return (
     <ZoneShell
@@ -58,7 +78,7 @@ export default function HarmonyPage() {
             鸿蒙全场景协同
           </h2>
           <p style={{ fontSize: 14, color: "var(--text-secondary)", maxWidth: 500, margin: "0 auto", lineHeight: 1.6 }}>
-            手机 · 平板 · 手表 · 耳机 · 智慧屏 — 五端一体的学习陪伴体验，让知识无缝流转
+            手机 · 平板 · 手表 · 耳机 · 智慧屏 — 当前可触达设备：{(pipeline?.xiaoyi_ready?.devices ?? ["phone", "tablet", "watch", "headphone", "smart_screen"]).join(" / ")}
           </p>
         </div>
 
@@ -117,7 +137,7 @@ export default function HarmonyPage() {
             gap: 14,
           }}
         >
-          {cards.map((card) => (
+          {displayCards.map((card) => (
             <Link
               key={card.title}
               href={card.href}

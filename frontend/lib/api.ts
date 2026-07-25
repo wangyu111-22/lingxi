@@ -994,7 +994,50 @@ export const agentApi = {
       method: "POST",
       body: JSON.stringify({ question, session_id: sessionId }),
     }),
+  pipeline: (query = "", sessionId?: string | null, city = "北京") => {
+    const params = new URLSearchParams({ city });
+    if (query) params.set("query", query);
+    const sid = sessionId ?? getSessionId();
+    if (sid) params.set("session_id", sid);
+    return request<AgentPipelineResponse>(`/agent/pipeline?${params.toString()}`);
+  },
+  skills: () => request<{ agent: string; version: string; skills: AgentSkill[] }>("/agent/skills"),
 };
+
+export interface AgentSkill {
+  key: string;
+  name: string;
+  description: string;
+  intents: string[];
+  keywords: string[];
+  actions: string[];
+  resources: string[];
+  entry: string;
+  devices: string[];
+}
+
+export interface AgentPipelineStage {
+  key: string;
+  title: string;
+  summary: string;
+  items: any[];
+}
+
+export interface AgentPipelineResponse {
+  pipeline: string;
+  intent: string;
+  context: any;
+  matched_skill_keys: string[];
+  matched_skills: string[];
+  stages: AgentPipelineStage[];
+  suggestions: any[];
+  actions: AgentAction[];
+  xiaoyi_ready: {
+    webhook: string;
+    interaction: string[];
+    devices: string[];
+  };
+}
 
 
 // ==================== 灵犀编译 API ====================

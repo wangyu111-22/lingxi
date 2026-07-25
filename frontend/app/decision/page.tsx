@@ -1,20 +1,34 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import ZoneShell from "@/components/ZoneShell";
 import VoiceButton from "@/components/VoiceButton";
+import { agentApi, AgentPipelineResponse } from "@/lib/api";
+import { useAuthSession } from "@/lib/session";
 
 export default function DecisionPage() {
   const [voiceText, setVoiceText] = useState("");
   const [refreshed, setRefreshed] = useState(false);
+  const [pipeline, setPipeline] = useState<AgentPipelineResponse | null>(null);
+  const { sessionId } = useAuthSession();
 
   const handleVoice = useCallback((text: string) => {
     setVoiceText(text);
     setTimeout(() => setVoiceText(""), 4000);
   }, []);
 
-  const handleRefresh = () => { setRefreshed(true); setTimeout(() => setRefreshed(false), 1500); };
+  const loadPipeline = useCallback((q = "现在我该怎么安排学习和生活") => {
+    agentApi.pipeline(q, sessionId).then(setPipeline).catch(() => setPipeline(null));
+  }, [sessionId]);
+
+  useEffect(() => { loadPipeline(); }, [loadPipeline]);
+
+  const handleRefresh = () => {
+    setRefreshed(true);
+    loadPipeline("刷新当前上下文并给我建议");
+    setTimeout(() => setRefreshed(false), 1500);
+  };
 
   // Dynamic context based on time
   const ctx = useMemo(() => {
@@ -22,19 +36,23 @@ export default function DecisionPage() {
     const period = h < 6 ? "深夜" : h < 9 ? "早晨" : h < 12 ? "上午" : h < 14 ? "中午" : h < 18 ? "下午" : h < 21 ? "傍晚" : "晚间";
     const isNight = h < 6 || h >= 21;
     const isMorning = h >= 6 && h < 9;
-    const temp = isNight ? 24 : isMorning ? 26 : h < 14 ? 32 : 30;
+    const temp = pipeline?.context?.weather?.temp ?? (isNight ? 24 : isMorning ? 26 : h < 14 ? 32 : 30);
     const weatherIcon = isNight ? "🌙" : isMorning ? "🌅" : h < 15 ? "☀️" : "⛅";
-    return { h, period, isNight, isMorning, temp, weatherIcon };
-  }, [refreshed]);
+    const learning = pipeline?.context?.learning ?? {};
+    const due = learning.due_reviews ?? 0;
+    const nodes = learning.nodes ?? 0;
+    const videos = learning.compiled_videos ?? 0;
+    return { h, period: pipeline?.context?.time?.period ?? period, isNight, isMorning, temp, weatherIcon, due, nodes, videos };
+  }, [refreshed, pipeline]);
 
   const decisions = useMemo(() => [
     {
       icon: "🎯", title: `${ctx.period}学习建议`, color: "#059669",
       insight: ctx.isMorning
-        ? `${ctx.period}大脑最清醒。今天${ctx.temp}°C${ctx.weatherIcon}，建议先复习昨日知识节点，再进行新视频编译。预计专注时间：上午9-11点。`
+        ? `${ctx.period}大脑最清醒。今天${ctx.temp}°C${ctx.weatherIcon}，建议先复习 ${ctx.due} 个到期节点，再进行新视频编译。预计专注时间：上午9-11点。`
         : ctx.isNight
-        ? `${ctx.period}时段适合轻松复习。推荐5分钟闪卡模式，避免高强度学习影响睡眠。`
-        : `${ctx.period}状态良好。已为你筛选3个待复习节点，预计15分钟完成今日学习目标。`,
+        ? `${ctx.period}时段适合轻松复习。知识树当前 ${ctx.nodes} 个节点，推荐5分钟闪卡模式，避免高强度学习影响睡眠。`
+        : `${ctx.period}状态良好。已编译 ${ctx.videos} 个视频，待复习 ${ctx.due} 个节点，预计15分钟完成今日学习目标。`,
       action: "去学习", href: "/workspace",
     },
     {
@@ -66,7 +84,7 @@ export default function DecisionPage() {
       icon: "📊", title: "工作效率优化", color: "#3b82f6",
       insight: ctx.isMorning
         ? `${ctx.period}规划：今日推荐番茄工作法（25分钟专注+5分钟休息），上午完成最重要的学习任务。`
-        : `${ctx.period}复盘：已学习2小时，建议起身活动5分钟，喝水补充能量。`,
+        : `${ctx.period}复盘：知识树 ${ctx.nodes} 个节点，建议先处理薄弱点，再起身活动5分钟。`,
       action: "去工作", href: "/work",
     },
     {
@@ -114,9 +132,9 @@ export default function DecisionPage() {
         }}>
           {[
             { label: `${ctx.period}好`, value: `${ctx.weatherIcon} ${ctx.temp}°C`, color: "#06b6d4" },
-            { label: "学习进度", value: "3 待复习", color: "#059669" },
-            { label: "情绪状态", value: "😊 良好", color: "#ec4899" },
-            { label: "主动服务", value: "已就绪", color: "#f59e0b" },
+            { label: "学习进度", value: `${ctx.due} 待复习`, color: "#059669" },
+            { label: "知识树", value: `${ctx.nodes} 节点`, color: "#ec4899" },
+            { label: "主动服务", value: pipeline ? "已接入" : "读取中", color: "#f59e0b" },
           ].map(s => (
             <div key={s.label} className="glow-border" style={{
               padding: "12px 16px", borderRadius: "var(--radius)", background: "var(--bg-elevated)",

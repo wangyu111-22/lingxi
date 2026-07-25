@@ -14,27 +14,38 @@ class ProactiveAgent:
     """
 
     session_id: str | None = None
+    context: dict[str, Any] | None = None
 
     def today(self) -> dict[str, Any]:
+        ctx = self.context or {}
+        learning = ctx.get("learning", {})
+        profile = ctx.get("profile", {})
+        time_ctx = ctx.get("time", {})
+        weather = ctx.get("weather", {})
+        weak = profile.get("weak_points") or ["知识树为空，建议先导入并编译视频"]
+        due = learning.get("due_reviews", 0)
+        pending = learning.get("pending_videos", 0)
+        period = time_ctx.get("period", "当前")
+        clock = time_ctx.get("clock", "--:--")
         return {
-            "greeting": "你好，我是小灵。现在适合用 5 分钟复习今天的视频知识点。",
+            "greeting": f"你好，我是小灵。{period} {clock}，我已结合你的学习记录、天气和近期对话生成主动建议。",
             "context": {
-                "time": "晚上 22:15",
-                "scene": "宿舍安静时段",
-                "learning_state": "今日已学习 2 个视频，尚未完成复习",
+                "time": f"{period} {clock}",
+                "scene": f"{weather.get('city', '北京')} · {weather.get('condition', '未知')} · {weather.get('temp') or '--'}°C",
+                "learning_state": f"{learning.get('nodes', 0)} 个知识节点，{learning.get('compiled_videos', 0)} 个已编译视频，{due} 个待复习",
                 "device": "HarmonyOS 手机 / 手表卡片",
             },
             "profile": {
-                "goal": "鸿蒙 Agent 创新赛答辩与课程学习",
-                "preference": "短解释、可追溯证据、语音复习",
-                "weak_points": ["知识图谱编排", "主动服务场景", "学习路径表达"],
-                "best_time": "21:00 - 23:00",
+                "goal": profile.get("goal", "鸿蒙 Agent 创新赛答辩与课程学习"),
+                "preference": profile.get("preference", "短解释、可追溯证据、语音复习"),
+                "weak_points": weak,
+                "best_time": profile.get("best_time", "21:00 - 23:00"),
             },
             "cards": [
                 {
                     "id": "night-review",
-                    "title": "晚间 5 分钟复习",
-                    "description": "你今天已经导入/学习过视频，建议用闪卡巩固 3 个核心知识点。",
+                    "title": f"{period}复习提醒",
+                    "description": f"当前有 {due} 个到期复习项，薄弱点：{', '.join(weak[:3])}。",
                     "trigger": "时间 + 学习进度",
                     "action_label": "开始复习",
                     "target": "/review",
@@ -42,7 +53,7 @@ class ProactiveAgent:
                 {
                     "id": "uncompiled-video",
                     "title": "收藏未学提醒",
-                    "description": "小灵发现有收藏视频还没有编译，可先生成知识树再问答。",
+                    "description": f"小灵发现 {pending} 个资源尚未完成编译，可先生成知识树再问答。",
                     "trigger": "收藏夹变化",
                     "action_label": "前往工作台",
                     "target": "/workspace",
@@ -50,7 +61,7 @@ class ProactiveAgent:
                 {
                     "id": "voice-commute",
                     "title": "碎片时间语音复习",
-                    "description": "在耳机/通勤场景中，用语音提问并听取 3 分钟解释。",
+                    "description": "在耳机/通勤场景中，用小艺语音入口提问并听取 3 分钟解释。",
                     "trigger": "设备 + 场景",
                     "action_label": "语音问小灵",
                     "target": "/agent",

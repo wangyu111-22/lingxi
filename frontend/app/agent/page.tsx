@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import LearnPageShell from "@/components/LearnPageShell";
 import Live2DCharacter from "@/components/Live2DCharacter";
+import { API_BASE_URL } from "@/lib/api";
 
 interface Message {
   role: "user" | "assistant";
@@ -53,10 +54,8 @@ export default function AgentPage() {
     const sid = getSessionId();
     if (!sid) return;
 
-    const base = window.location.hostname === "localhost" ? "/api" : "/api/proxy";
-
     // Load knowledge stats for dynamic suggestions
-    fetch(base + "/tree/graph?session_id=" + sid)
+    fetch(API_BASE_URL + "/tree/graph?session_id=" + sid)
       .then(r => r.json())
       .then(data => {
         const nodes = data.nodes || [];
@@ -83,7 +82,7 @@ export default function AgentPage() {
       .catch(() => {});
 
     // Jingyu: Load recent chat history
-    fetch(base + "/agent/conversations?session_id=" + sid)
+    fetch(API_BASE_URL + "/agent/conversations?session_id=" + sid)
       .then(r => r.json())
       .then(data => {
         const convs = data.conversations || data || [];
@@ -108,8 +107,7 @@ export default function AgentPage() {
     setMessages(prev => [...prev, { role: "user", content: q }]);
     setLoading(true);
     try {
-      const base = window.location.hostname === "localhost" ? "/api" : "/api/proxy";
-      const resp = await fetch(base + "/agent/ask", {
+      const resp = await fetch(API_BASE_URL + "/agent/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q, session_id: sid }),
