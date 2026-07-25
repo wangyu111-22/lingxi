@@ -117,6 +117,9 @@ export interface CompiledVideoItem {
     extraction_status?: string;
     knowledge_node_count?: number;
     content_category?: string;
+    series_name?: string;
+    series_key?: string;
+    pages_count?: number;
     is_processed?: boolean;
     updated_at?: string;
 }
@@ -755,12 +758,13 @@ export interface LearningPathStep {
 }
 
 export interface LearningPathResponse {
-    target: { id: number; name: string; node_type: string; difficulty: number };
+    target: string | { id: number; name: string; node_type: string; difficulty: number };
     mode: string;
     steps: LearningPathStep[];
     total_steps: number;
     estimated_videos: number;
-    summary?: {
+    source?: string;
+    summary?: string | {
         mode_label: string;
         avg_priority_score: number;
         avg_support_score: number;
@@ -853,7 +857,7 @@ export interface CompileResult {
   concepts: CompileConcept[];
   timeline: TimelineSegment[];
   prerequisites: Array<{ source: string; target: string; type: string }>;
-  stats: { concept_count: number; claim_count: number; peak_count: number };
+  stats: { concept_count: number; claim_count: number; peak_count: number; segment_count?: number };
 }
 
 export interface EvidenceItem {

@@ -185,7 +185,7 @@ function LearningPathContent() {
             {path && (
               <div className="learning-path-result">
                 <div className="path-result-header">
-                  <h3>📚 学习路径: {path.target?.name || path.target}</h3>
+                  <h3>📚 学习路径: {typeof path.target === "string" ? path.target : path.target.name}</h3>
                   <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>
                     {path.total_steps} 步 · {path.estimated_videos ?? 0} 个视频 · {mode === "beginner" ? "入门" : mode === "quick" ? "快速" : "标准"}模式
                     {path.source === "ai_conceptual" && " · AI 生成"}
@@ -196,7 +196,7 @@ function LearningPathContent() {
                   <div className="path-explanation" style={{ background: "rgba(5,150,105,0.04)", padding: 12, borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
                     📝 {path.summary}
                   </div>
-                ) : path.summary ? (
+                ) : path.summary && typeof path.summary !== "string" ? (
                   <div className="path-metrics-grid">
                     <div className="path-metric-card">
                       <span className="path-metric-label">路径模式</span>
@@ -211,7 +211,7 @@ function LearningPathContent() {
 
                 {(!path.summary || typeof path.summary === "string") && (
                   <div className="path-explanation" style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>
-                    从基础概念出发，逐步递进到「{path.target?.name || query}」。每一步都标注了推荐理由。
+                    从基础概念出发，逐步递进到「{typeof path.target === "string" ? path.target : path.target.name || query}」。每一步都标注了推荐理由。
                   </div>
                 )}
 

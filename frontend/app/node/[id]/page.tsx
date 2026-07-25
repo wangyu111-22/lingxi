@@ -212,9 +212,9 @@ export default function NodeDetailPage() {
                         <span style={{ fontWeight: 600, color: "#d98b2b", minWidth: 24 }}>{step.order}</span>
                         <div style={{ flex: 1 }}>
                           <Link href={`/node/${step.node_id}`} className="kp-name">{step.name}</Link>
-                          <span className={`node-badge ${step.node_type}`} style={{ marginLeft: 8 }}>{TYPE_LABELS[step.node_type] || step.node_type}</span>
+                          <span className={`node-badge ${step.node_type ?? "concept"}`} style={{ marginLeft: 8 }}>{TYPE_LABELS[step.node_type ?? "concept"] || step.node_type || "概念"}</span>
                           <span className="node-stars" style={{ marginLeft: 6 }}>
-                            {Array.from({ length: step.difficulty }, () => "●").join("")}
+                            {Array.from({ length: step.difficulty ?? 1 }, () => "●").join("")}
                           </span>
                           {step.is_optional && <span className="node-meta" style={{ marginLeft: 6 }}>（可选）</span>}
                           <div style={{ fontSize: 13, color: "#6b6560", marginTop: 2 }}>{step.reason}</div>

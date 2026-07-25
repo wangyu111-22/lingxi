@@ -46,6 +46,9 @@ export default function ImportUrlModal({ open, onClose, onSuccess }: ImportUrlMo
 
     try {
       const { sessionId } = readAuthSession();
+      if (!sessionId) {
+        throw new Error("请先登录后再导入内容");
+      }
       const res = await knowledgeApi.importUrl(trimmed, sessionId);
       setResult(res);
       onSuccess?.(res);

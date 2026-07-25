@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface VoiceButtonProps {
   onResult?: (text: string) => void;
@@ -8,32 +8,91 @@ interface VoiceButtonProps {
   color?: string;
 }
 
-export default function VoiceButton({ onResult, size = 44, color = "#059669" }: VoiceButtonProps) {
+interface SpeechRecognitionEventLike {
+  results: ArrayLike<{ 0: { transcript: string } }>;
+}
+
+interface SpeechRecognitionErrorEventLike {
+  error: string;
+}
+
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
+
+export default function VoiceButton({
+  onResult,
+  size = 44,
+  color = "#059669",
+}: VoiceButtonProps) {
   const [listening, setListening] = useState(false);
-  const [ripple, setRipple] = useState(false);
+  const [error, setError] = useState("");
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => () => recognitionRef.current?.abort(), []);
+
+  const stopListening = useCallback(() => {
+    recognitionRef.current?.stop();
+    setListening(false);
+  }, []);
 
   const toggle = useCallback(() => {
     if (listening) {
-      setListening(false);
-      setRipple(false);
-      // Simulate voice recognition result
-      onResult?.("今天天气怎么样？");
+      stopListening();
       return;
     }
-    setListening(true);
-    setRipple(true);
-    // Auto-stop after 3s (simulated)
-    setTimeout(() => {
+
+    const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setError("当前浏览器不支持语音识别，请使用最新版 Chrome 或 Edge");
+      return;
+    }
+
+    setError("");
+    const recognition = new Recognition();
+    recognition.lang = "zh-CN";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript?.trim();
+      if (transcript) onResult?.(transcript);
+    };
+    recognition.onerror = (event) => {
       setListening(false);
-      setRipple(false);
-      onResult?.("帮我总结今天的学习内容");
-    }, 3000);
-  }, [listening, onResult]);
+      setError(event.error === "not-allowed" ? "请允许浏览器使用麦克风" : "语音识别失败，请重试");
+    };
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+
+    try {
+      recognition.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+      setError("无法启动语音识别，请稍后重试");
+    }
+  }, [listening, onResult, stopListening]);
 
   return (
     <div style={{ position: "relative", display: "inline-flex" }}>
-      {/* Ripple animation */}
-      {ripple && (
+      {listening && (
         <>
           <div style={{
             position: "absolute", inset: -8, borderRadius: "50%",
@@ -46,13 +105,14 @@ export default function VoiceButton({ onResult, size = 44, color = "#059669" }: 
         </>
       )}
       <button
+        type="button"
         onClick={toggle}
         title={listening ? "点击停止" : "语音输入"}
+        aria-label={listening ? "停止语音识别" : "开始语音识别"}
+        aria-pressed={listening}
         style={{
           width: size, height: size, borderRadius: "50%",
-          background: listening
-            ? `linear-gradient(135deg, ${color}, ${color}dd)`
-            : "var(--bg-elevated)",
+          background: listening ? `linear-gradient(135deg, ${color}, ${color}dd)` : "var(--bg-elevated)",
           border: `2px solid ${listening ? color : "var(--border)"}`,
           color: listening ? "#fff" : "var(--ink-soft)",
           cursor: "pointer", display: "flex", alignItems: "center",
@@ -68,6 +128,15 @@ export default function VoiceButton({ onResult, size = 44, color = "#059669" }: 
           <line x1="8" y1="23" x2="16" y2="23" />
         </svg>
       </button>
+      {error && (
+        <span role="status" style={{
+          position: "absolute", top: size + 8, left: "50%", transform: "translateX(-50%)",
+          width: 220, padding: "6px 8px", borderRadius: 8, background: "#fff7ed",
+          border: "1px solid #fed7aa", color: "#c2410c", fontSize: 12, textAlign: "center", zIndex: 10,
+        }}>
+          {error}
+        </span>
+      )}
     </div>
   );
 }

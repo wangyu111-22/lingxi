@@ -441,8 +441,6 @@ export default function KnowledgeGraph3D({
         warmupTicks={80}
         cooldownTicks={200}
         enablePointerInteraction={true}
-        minZoom={30}
-        maxZoom={600}
         d3VelocityDecay={0.25}
       />
 

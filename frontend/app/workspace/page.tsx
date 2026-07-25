@@ -96,7 +96,12 @@ export default function WorkspacePage() {
     }catch{if(resultRequestIdRef.current===requestId&&isActiveSession(sid)){setCompileResult(null);setLoadingResult(false);}}
   },[sessionId]);
 
-  const handleSelectVideo = (bvid:string,pageCid?:number|null) => { setSelectedBvid(bvid);setSelectedCid(pageCid??null);setCompileResult(null);void fetchResult(bvid,pageCid,sessionId); };
+  const handleSelectVideo = (bvid:string,pageCid?:number|null) => {
+    setSelectedBvid(bvid);
+    setSelectedCid(pageCid??null);
+    setCompileResult(null);
+    if (sessionId) void fetchResult(bvid,pageCid,sessionId);
+  };
 
   const handleCompile = async (bvid:string,cid?:number,pageTitle?:string) => {
     if(!sessionId){setCompileError("会话过期");return;}
