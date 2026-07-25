@@ -41,16 +41,26 @@ const Prop = ({ item, sel, onClick, onTransform }: { item:Item; sel:boolean; onC
 
 /* ===== Transform Gizmo ===== */
 function Gizmo({ sid, items, setItems }: { sid:number|null; items:Item[]; setItems:(cb:(p:Item[])=>Item[])=>void }) {
-  if (!sid) return null;
   const { scene } = useThree();
+  const lastSync = useRef(0);
+  if (!sid) return null;
   const obj = scene.getObjectByName(`sel-${sid}`);
   if (!obj) return null;
+  const syncItem = () => {
+    const now = performance.now();
+    if (now - lastSync.current < 90) return;
+    lastSync.current = now;
+    const o = scene.getObjectByName(`sel-${sid}`);
+    if (!o) return;
+    setItems(p=>p.map(i=>i.id===sid?{...i,pos:o.position.toArray() as THREE.Vector3Tuple,rot:[o.rotation.x,o.rotation.y,o.rotation.z],s:o.scale.x}:i));
+  };
   return (
     <TransformControls object={obj} mode="translate"
-      onObjectChange={() => {
+      onObjectChange={syncItem}
+      onMouseUp={() => {
         const o = scene.getObjectByName(`sel-${sid}`);
         if (!o) return;
-        setItems(p=>p.map(i=>i.id===sid?{...i,pos:o.position.toArray() as THREE.Vector3Tuple,rot:o.rotation.toArray() as THREE.Vector3Tuple,s:o.scale.x}:i));
+        setItems(p=>p.map(i=>i.id===sid?{...i,pos:o.position.toArray() as THREE.Vector3Tuple,rot:[o.rotation.x,o.rotation.y,o.rotation.z],s:o.scale.x}:i));
       }} />
   );
 }
@@ -64,7 +74,7 @@ function WallSeg({ wall, sel, onClick, time }: { wall:WallDef; sel?:boolean; onC
     <group onClick={e=>{e.stopPropagation();onClick?.();}}>
       <mesh position={[cx,WALL_H/2,cz]} receiveShadow castShadow>
         <boxGeometry args={[w,WALL_H,d]}/>
-        <meshStandardMaterial roughness={0.85} color={wall.color||(sel?"#fbcfe8":WALL_COLOR_DAY)}/>
+        <meshStandardMaterial roughness={0.85} color={wall.color||(sel?"#fbcfe8":WALL_COLOR_DAY)} transparent opacity={sel?0.72:0.88}/>
       </mesh>
       {sel && <Html position={[cx,WALL_H+0.5,cz]} center pointerEvents="none"><span style={{background:"#ec4899",color:"#fff",padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:600}}>墙体</span></Html>}
     </group>
@@ -98,7 +108,7 @@ function GardenGround() { return <group><mesh rotation={[-Math.PI/2,0,0]} positi
 function Stars() { const r=useRef<THREE.Points>(null!);const p=useMemo(()=>{const a=new Float32Array(500*3);for(let i=0;i<500;i++){a[i*3]=(Math.random()-0.5)*24;a[i*3+1]=6+Math.random()*10;a[i*3+2]=(Math.random()-0.5)*24}return a},[]);useFrame((_,d)=>{if(r.current)r.current.rotation.y+=d*0.02;});return <points ref={r}><bufferGeometry><bufferAttribute attach="attributes-position" args={[p,3]}/></bufferGeometry><pointsMaterial size={0.06} color="#fff" transparent opacity={0.6} blending={THREE.AdditiveBlending} sizeAttenuation/></points>; }
 function Moon() { return <group position={[8,10,-10]}><mesh><sphereGeometry args={[0.6,32,32]}/><meshStandardMaterial color="#fef3c7" roughness={0.3} emissive="#fef3c7" emissiveIntensity={2}/></mesh><pointLight position={[0,0,0]} intensity={6} color="#fef3c7" distance={28} decay={2}/></group>; }
 function ShootingStars() { const s=useMemo(()=>Array.from({length:4},(_,i)=>({d:i*8+Math.random()*12,x:(Math.random()-0.5)*18,y:7+Math.random()*8,z:(Math.random()-0.5)*12})),[]);return <>{s.map((st,i)=><SStar key={i} p={[st.x,st.y,st.z]} d={st.d}/>)}</>; }
-function SStar({p,d}:{p:THREE.Vector3Tuple;d:number}){const ref=useRef<THREE.Line>(null!);const el=useRef(d);useFrame((_,dt)=>{el.current+=dt;if(!ref.current)return;const t=(el.current%18)/18;ref.current.position.set(p[0]+t*10,p[1]-t*5,p[2]+t*4);(ref.current.material as THREE.LineBasicMaterial).opacity=Math.sin(t*Math.PI)*0.7;});const line=useMemo(()=>{const geometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(-2,-1,0.8)]);const material=new THREE.LineBasicMaterial({color:"#fff",transparent:true,opacity:0});return new THREE.Line(geometry,material);},[]);return <primitive ref={ref} object={line}/>;}
+function SStar({p,d}:{p:THREE.Vector3Tuple;d:number}){const ref=useRef<THREE.Line>(null!);const el=useRef(d);const lineObj=useMemo(()=>{const pts=[new THREE.Vector3(0,0,0),new THREE.Vector3(-2,-1,0.8)];const geometry=new THREE.BufferGeometry().setFromPoints(pts);const material=new THREE.LineBasicMaterial({color:"#fff",transparent:true,opacity:0});return new THREE.Line(geometry,material);},[]);useFrame((_,dt)=>{el.current+=dt;if(!ref.current)return;const t=(el.current%18)/18;ref.current.position.set(p[0]+t*10,p[1]-t*5,p[2]+t*4);(ref.current.material as THREE.LineBasicMaterial).opacity=Math.sin(t*Math.PI)*0.7;});return <primitive ref={ref} object={lineObj}/>;}
 function Fireflies({n=30}:{n?:number}){const ref=useRef<THREE.Points>(null!);const p=useMemo(()=>{const a=new Float32Array(n*3);for(let i=0;i<n;i++){a[i*3]=(Math.random()-0.5)*18;a[i*3+1]=0.3+Math.random()*3;a[i*3+2]=(Math.random()-0.5)*18}return a},[]);const sp=useMemo(()=>Array.from({length:n},()=>(Math.random()-0.5)*0.6),[]);useFrame((_,dt)=>{if(!ref.current)return;const arr=ref.current.geometry.attributes.position.array as Float32Array;for(let i=0;i<n;i++){arr[i*3+1]+=Math.sin(Date.now()*0.003*sp[i])*0.01;arr[i*3]+=Math.cos(Date.now()*0.002*sp[i])*dt*0.3;arr[i*3+2]+=Math.sin(Date.now()*0.0025*sp[i])*dt*0.3}ref.current.geometry.attributes.position.needsUpdate=true;});return <points ref={ref}><bufferGeometry><bufferAttribute attach="attributes-position" args={[p,3]}/></bufferGeometry><pointsMaterial size={0.1} color="#a3e635" transparent opacity={0.5} blending={THREE.AdditiveBlending} sizeAttenuation/></points>;}
 
 /* ===== 默认数据 ===== */
@@ -162,13 +172,40 @@ const CATALOG = [
 ];
 
 /* ===== 花园数据(生长系统) ===== */
-type GardenPlant = { id:number; path:string; name:string; type:"flower"|"crop"; stage:0|1|2|3; water:number; fertilizer:number; plantedAt:number; slot?:number };
+type GardenPlant = { id:number; path:string; name:string; type:"flower"|"crop"; stage:0|1|2|3; water:number; fertilizer:number; plantedAt:number; slot?:number; boostMinutes?:number; readyAt?:number };
 type HomeWeather = { condition:string; code:number; temp?:number; city:string };
+type GardenResource = { waterStock:number; fertilizerStock:number; lastWaterRefill:number; lastFertilizerRefill:number };
 const GARDEN_SLOTS = Array.from({length:24},(_,i)=>({
   id:i,
   pos:[-11 + (i%6)*3.6,0,8 - Math.floor(i/6)*3.4] as [number,number,number],
 }));
 const MAX_GARDEN_PLANTS = GARDEN_SLOTS.length;
+const GROWTH_DURATION_MS = 12 * 60_000;
+const WATER_COOLDOWN_MS = 10 * 60_000;
+const FERTILIZER_COOLDOWN_MS = 15 * 60_000;
+const MAX_GARDEN_RESOURCE = 8;
+const DEFAULT_GARDEN_RESOURCE = (): GardenResource => ({waterStock:3,fertilizerStock:2,lastWaterRefill:Date.now(),lastFertilizerRefill:Date.now()});
+const isBadWeather = (weather:HomeWeather) => weather.code >= 2 || /阴|雨|雪|雾|霾|沙|尘|雷|云/.test(weather.condition);
+const getGrowthRate = (time:TimeOfDay, weather:HomeWeather) => time === "night" ? 1.5 : isBadWeather(weather) ? 0.5 : 1;
+const getPlantProgress = (plant:GardenPlant, now:number, rate:number) => {
+  const elapsed = Math.max(0, now - plant.plantedAt) * rate;
+  const boosted = (plant.boostMinutes || 0) * 60_000;
+  return Math.min(1, (elapsed + boosted) / GROWTH_DURATION_MS);
+};
+const getPlantStage = (plant:GardenPlant, now:number, rate:number): 0|1|2|3 => {
+  const progress = getPlantProgress(plant, now, rate);
+  return progress >= 1 ? 3 : progress >= 0.66 ? 2 : progress >= 0.33 ? 1 : 0;
+};
+const refillGardenResource = (resource:GardenResource, now=Date.now()): GardenResource => {
+  const waterGain = Math.floor((now - resource.lastWaterRefill) / WATER_COOLDOWN_MS);
+  const fertilizerGain = Math.floor((now - resource.lastFertilizerRefill) / FERTILIZER_COOLDOWN_MS);
+  return {
+    waterStock: Math.min(MAX_GARDEN_RESOURCE, resource.waterStock + Math.max(0, waterGain)),
+    fertilizerStock: Math.min(MAX_GARDEN_RESOURCE, resource.fertilizerStock + Math.max(0, fertilizerGain)),
+    lastWaterRefill: waterGain > 0 ? resource.lastWaterRefill + waterGain * WATER_COOLDOWN_MS : resource.lastWaterRefill,
+    lastFertilizerRefill: fertilizerGain > 0 ? resource.lastFertilizerRefill + fertilizerGain * FERTILIZER_COOLDOWN_MS : resource.lastFertilizerRefill,
+  };
+};
 const normalizeGardenPlants = (plants:GardenPlant[]) => {
   const used = new Set<number>();
   const normalized: GardenPlant[] = [];
@@ -177,7 +214,7 @@ const normalizeGardenPlants = (plants:GardenPlant[]) => {
     if (slot < 0) slot = GARDEN_SLOTS.find(s => !used.has(s.id))?.id ?? -1;
     if (slot < 0) return;
     used.add(slot);
-    normalized.push({...plant, slot, id: plant.id || 600 + index});
+    normalized.push({...plant, slot, id: plant.id || 600 + index, boostMinutes: plant.boostMinutes || 0});
   });
   return normalized;
 };
@@ -198,22 +235,24 @@ const initialGarden: GardenPlant[] = [
   {id:616,slot:23,path:N("crops_wheatStageA"),name:"小麦",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
 ];
 
-function GrowingPlant({ plant, sel, onClick, pos }: { plant:GardenPlant; sel:boolean; onClick:()=>void; pos:[number,number,number] }) {
-  const g=plant.stage, s=0.3+g*0.8;
+function GrowingPlant({ plant, sel, onClick, pos, stage, progress }: { plant:GardenPlant; sel:boolean; onClick:()=>void; pos:[number,number,number]; stage:0|1|2|3; progress:number }) {
+  const ref = useRef<THREE.Group>(null!);
+  useFrame(({clock})=>{if(ref.current){ref.current.rotation.z=Math.sin(clock.elapsedTime*1.2+plant.id)*0.035*(1-progress*0.4);}});
+  const g=stage, s=0.35+progress*2.2;
   const { scene } = useGLTF(plant.path);
   const clone = useMemo(() => { const c=scene.clone();c.traverse(ch=>{if((ch as THREE.Mesh).isMesh){(ch as THREE.Mesh).castShadow=true;(ch as THREE.Mesh).receiveShadow=true;}});return c;}, [scene]);
   return (
-    <group position={pos} scale={[s,s,s]} onClick={e=>{e.stopPropagation();onClick();}}>
+    <group ref={ref} position={pos} scale={[s,s,s]} onClick={e=>{e.stopPropagation();onClick();}}>
       <primitive object={clone}/>
-      {sel && <Html position={[0,1.5,0]} center style={{pointerEvents:"none"}}><span style={{background:plant.type==="crop"?"#f59e0b":"#ec4899",color:"#fff",padding:"4px 12px",borderRadius:10,fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{plant.name} {["🌱","🌿","🌳","🌸"][g]}</span></Html>}
+      {sel && <Html position={[0,1.5,0]} center style={{pointerEvents:"none"}}><span style={{background:plant.type==="crop"?"#f59e0b":"#ec4899",color:"#fff",padding:"4px 12px",borderRadius:10,fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{plant.name} {["🌱","🌿","🌳","🌸"][g]} {Math.round(progress*100)}%</span></Html>}
       {g===0 && <Html position={[0,0.2,0]} center style={{pointerEvents:"none"}}><span style={{fontSize:20}}>🌱</span></Html>}
     </group>
   );
 }
 
 /* ===== 花园场景 ===== */
-function GardenFullScene({ plants, selId, onSelect }: {
-  plants:GardenPlant[]; selId:number|null; onSelect:(id:number|null)=>void;
+function GardenFullScene({ plants, selId, onSelect, now, growthRate }: {
+  plants:GardenPlant[]; selId:number|null; onSelect:(id:number|null)=>void; now:number; growthRate:number;
 }) {
   const fenceItems = [
     ...Array.from({length:7},(_,i)=>({id:900+i,path:N("fence_simple"),pos:[-12+i*3.6,0,11.2] as THREE.Vector3Tuple,s:2.05,name:"围栏",cat:"建筑"})),
@@ -251,18 +290,22 @@ function GardenFullScene({ plants, selId, onSelect }: {
           </Html>}
         </group>;
       })}
-      {plants.map(p=><GrowingPlant key={p.id} plant={p} sel={selId===p.id} onClick={()=>onSelect(selId===p.id?null:p.id)} pos={GARDEN_SLOTS[p.slot ?? 0]?.pos ?? [0,0,0]}/>)}
+      {plants.map(p=><GrowingPlant key={p.id} plant={p} stage={getPlantStage(p,now,growthRate)} progress={getPlantProgress(p,now,growthRate)} sel={selId===p.id} onClick={()=>onSelect(selId===p.id?null:p.id)} pos={GARDEN_SLOTS[p.slot ?? 0]?.pos ?? [0,0,0]}/>)}
     </group>
   );
 }
 
 // 花园操作面板 (渲染在Canvas外面, 右侧)
-function GardenPanel({ plants, selId, onSelect, onWater, onFertilize, onHarvest, onAdd }: {
+function GardenPanel({ plants, selId, onSelect, onWater, onFertilize, onHarvest, onAdd, resource, now, growthRate }: {
   plants:GardenPlant[]; selId:number|null; onSelect:(id:number|null)=>void;
   onWater:(id:number)=>void; onFertilize:(id:number)=>void; onHarvest:(id:number)=>void;
   onAdd:(type:"flower"|"crop",path:string,name:string)=>void;
+  resource:GardenResource; now:number; growthRate:number;
 }) {
   const sel=plants.find(p=>p.id===selId);
+  const selStage = sel ? getPlantStage(sel,now,growthRate) : 0;
+  const selProgress = sel ? getPlantProgress(sel,now,growthRate) : 0;
+  const matureLeft = sel ? Math.max(0, Math.ceil((GROWTH_DURATION_MS - ((now - sel.plantedAt) * growthRate + (sel.boostMinutes || 0) * 60_000)) / 60_000)) : 0;
   const isFull = plants.length >= MAX_GARDEN_PLANTS;
   const PLANT_CHOICES = [
     {type:"flower"as const,path:N("flower_purpleA"),name:"紫色花"},{type:"flower"as const,path:N("flower_redB"),name:"红花"},
@@ -277,6 +320,11 @@ function GardenPanel({ plants, selId, onSelect, onWater, onFertilize, onHarvest,
       <div style={{ padding:"8px 10px",borderRadius:10,background:isFull?"#fff1f2":"#ecfdf5",color:isFull?"#be123c":"#047857",fontWeight:700 }}>
         已种植 {plants.length}/{MAX_GARDEN_PLANTS} · 每格一颗
       </div>
+      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:6 }}>
+        <div style={{ padding:"7px",borderRadius:9,background:"#eff6ff",color:"#0369a1",fontWeight:800 }}>💧 {resource.waterStock}/{MAX_GARDEN_RESOURCE}</div>
+        <div style={{ padding:"7px",borderRadius:9,background:"#f7fee7",color:"#3f6212",fontWeight:800 }}>🧪 {resource.fertilizerStock}/{MAX_GARDEN_RESOURCE}</div>
+      </div>
+      <div style={{ color:"#78716c",fontSize:10,lineHeight:1.45 }}>成长倍率 {growthRate}x · 水加速4分钟 · 肥料加速6分钟</div>
 
       {/* 播种区 */}
       <div style={{ fontWeight:700,color:"#ec4899",fontSize:10 }}>🌱 播种新植物</div>
@@ -290,18 +338,22 @@ function GardenPanel({ plants, selId, onSelect, onWater, onFertilize, onHarvest,
       <div style={{ maxHeight:200,overflowY:"auto" }}>
         {plants.map(p=><button key={p.id} onClick={()=>onSelect(selId===p.id?null:p.id)}
           style={{ display:"block",width:"100%",padding:"6px 8px",borderRadius:7,border:selId===p.id?"2px solid #6366f1":"1px solid #fce4ec",background:selId===p.id?"#eef2ff":"#fff",cursor:"pointer",fontSize:10,textAlign:"left",marginBottom:2 }}>
-          {["🌱","🌿","🌳","🌸"][p.stage]} {p.name} <span style={{color:"#a8a29e",float:"right"}}>💧{p.water} 🧪{p.fertilizer}</span>
+          {["🌱","🌿","🌳","🌸"][getPlantStage(p,now,growthRate)]} {p.name} <span style={{color:"#a8a29e",float:"right"}}>{Math.round(getPlantProgress(p,now,growthRate)*100)}%</span>
         </button>)}
       </div>
 
       {/* 操作按钮 */}
       {sel && <div style={{ borderTop:"1px solid #fce4ec",paddingTop:8 }}>
-        <div style={{ fontWeight:700,fontSize:12,color:"#444",marginBottom:6 }}>{sel.name} · {["🌱种子","🌿幼苗","🌳成长","🌸盛开"][sel.stage]}</div>
-        <div style={{ display:"flex",gap:4 }}>
-          <button onClick={()=>onWater(sel.id)} style={{ flex:1,padding:"8px",borderRadius:10,border:"none",background:"#06b6d4",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700 }}>💧 浇水</button>
-          <button onClick={()=>onFertilize(sel.id)} style={{ flex:1,padding:"8px",borderRadius:10,border:"none",background:"#84cc16",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700 }}>🧪 施肥</button>
+        <div style={{ fontWeight:700,fontSize:12,color:"#444",marginBottom:6 }}>{sel.name} · {["🌱种子","🌿幼苗","🌳成长","🌸成熟"][selStage]}</div>
+        <div style={{ height:8,borderRadius:999,background:"#f5f5f4",overflow:"hidden",marginBottom:6 }}>
+          <div style={{ width:`${Math.round(selProgress*100)}%`,height:"100%",background:"linear-gradient(90deg,#22c55e,#facc15)" }}/>
         </div>
-        {sel.stage===3 && <button onClick={()=>onHarvest(sel.id)} style={{ width:"100%",marginTop:4,padding:"8px",borderRadius:10,border:"none",background:"#f59e0b",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700 }}>🧺 收获</button>}
+        <div style={{ color:"#78716c",fontSize:10,marginBottom:6 }}>预计还需 {matureLeft} 分钟 · 已加速 {sel.boostMinutes || 0} 分钟</div>
+        <div style={{ display:"flex",gap:4 }}>
+          <button disabled={resource.waterStock<=0 || selStage===3} onClick={()=>onWater(sel.id)} style={{ flex:1,padding:"8px",borderRadius:10,border:"none",background:resource.waterStock<=0||selStage===3?"#cbd5e1":"#06b6d4",color:"#fff",cursor:resource.waterStock<=0||selStage===3?"not-allowed":"pointer",fontSize:12,fontWeight:700 }}>💧 浇水</button>
+          <button disabled={resource.fertilizerStock<=0 || selStage===3} onClick={()=>onFertilize(sel.id)} style={{ flex:1,padding:"8px",borderRadius:10,border:"none",background:resource.fertilizerStock<=0||selStage===3?"#cbd5e1":"#84cc16",color:"#fff",cursor:resource.fertilizerStock<=0||selStage===3?"not-allowed":"pointer",fontSize:12,fontWeight:700 }}>🧪 施肥</button>
+        </div>
+        {selStage===3 && <button onClick={()=>onHarvest(sel.id)} style={{ width:"100%",marginTop:4,padding:"8px",borderRadius:10,border:"none",background:"#f59e0b",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700 }}>🧺 收获</button>}
       </div>}
     </div>
   );
@@ -408,15 +460,73 @@ function HayBale({ pos, rot=0 }: { pos: THREE.Vector3Tuple; rot?: number }) {
   );
 }
 
-/* 精细农场动物 */
-function Walker({ pos, speed, children }: { pos:THREE.Vector3Tuple; speed:number; children:React.ReactNode }) {
-  const ref = useRef<THREE.Group>(null!);
-  useFrame((_,d)=>{if(ref.current){ref.current.position.x+=Math.sin(Date.now()*0.001*speed+pos[0])*d*0.6;ref.current.position.z+=Math.cos(Date.now()*0.0013*speed+pos[2])*d*0.5;}});
-  return <group ref={ref} position={pos}>{children}</group>;
+function SimpleTree({ pos, s=1 }: { pos:THREE.Vector3Tuple; s?:number }) {
+  return <group position={pos} scale={[s,s,s]}>
+    <mesh position={[0,0.7,0]} castShadow><cylinderGeometry args={[0.18,0.25,1.4,8]}/><meshStandardMaterial color="#7c2d12" roughness={0.8}/></mesh>
+    <mesh position={[0,1.7,0]} castShadow><coneGeometry args={[0.9,1.5,10]}/><meshStandardMaterial color="#15803d" roughness={0.75}/></mesh>
+    <mesh position={[0,2.35,0]} castShadow><coneGeometry args={[0.65,1.2,10]}/><meshStandardMaterial color="#16a34a" roughness={0.75}/></mesh>
+  </group>;
 }
 
-function CowModel({ pos, s=1 }: { pos:THREE.Vector3Tuple; s?:number }) {
-  return <Walker pos={pos} speed={0.7}>
+function GrassTufts() {
+  return <group>
+    {Array.from({length:34},(_,i)=>{
+      const x=-12+(i%9)*3, z=-11+Math.floor(i/9)*5 + (i%2)*0.8;
+      return <group key={i} position={[x,0.02,z]} rotation={[0,i*0.8,0]}>
+        {[0,1,2].map(j=><mesh key={j} position={[j*0.12-0.12,0.18,0]} rotation={[0,0,(j-1)*0.35]}><coneGeometry args={[0.06,0.38,5]}/><meshStandardMaterial color={j===1?"#22c55e":"#16a34a"} roughness={0.8}/></mesh>)}
+      </group>;
+    })}
+  </group>;
+}
+
+function Barn({ pos=[-8,0,-5] as THREE.Vector3Tuple }: { pos?:THREE.Vector3Tuple }) {
+  return <group position={pos}>
+    <mesh position={[0,1.3,0]} castShadow receiveShadow><boxGeometry args={[4.6,2.6,3.8]}/><meshStandardMaterial color="#b91c1c" roughness={0.65}/></mesh>
+    <mesh position={[0,2.85,0]} rotation={[0,0,Math.PI/4]} castShadow><boxGeometry args={[3.7,3.7,4.1]}/><meshStandardMaterial color="#7f1d1d" roughness={0.7}/></mesh>
+    <mesh position={[0,0.95,1.96]}><boxGeometry args={[1.5,1.9,0.08]}/><meshStandardMaterial color="#451a03" roughness={0.75}/></mesh>
+    <mesh position={[0,1.05,2.02]}><boxGeometry args={[0.08,1.7,0.1]}/><meshStandardMaterial color="#fef3c7"/></mesh>
+    <mesh position={[0,1.05,2.04]} rotation={[0,0,Math.PI/4]}><boxGeometry args={[0.08,1.9,0.1]}/><meshStandardMaterial color="#fef3c7"/></mesh>
+    <Html position={[0,3.8,0]} center style={{pointerEvents:"none"}}><span style={{background:"#b91c1c",color:"#fff",padding:"4px 10px",borderRadius:10,fontSize:12,fontWeight:800}}>休息仓</span></Html>
+  </group>;
+}
+
+function PetHouse({ pos, color="#ef4444", label="小窝" }: { pos:THREE.Vector3Tuple; color?:string; label?:string }) {
+  return <group position={pos}>
+    <mesh position={[0,0.55,0]} castShadow receiveShadow><boxGeometry args={[2.1,1.1,1.8]}/><meshStandardMaterial color="#fef3c7" roughness={0.75}/></mesh>
+    <mesh position={[0,1.25,0]} rotation={[0,0,Math.PI/4]} castShadow><boxGeometry args={[1.65,1.65,2]}/><meshStandardMaterial color={color} roughness={0.7}/></mesh>
+    <mesh position={[0,0.45,0.92]}><boxGeometry args={[0.65,0.75,0.08]}/><meshStandardMaterial color="#451a03" roughness={0.8}/></mesh>
+    <Html position={[0,1.9,0]} center style={{pointerEvents:"none"}}><span style={{background:color,color:"#fff",padding:"3px 8px",borderRadius:8,fontSize:10,fontWeight:800}}>{label}</span></Html>
+  </group>;
+}
+
+function DogModel({ pos, s=1, color="#a16207", resting=false }: { pos:THREE.Vector3Tuple; s?:number; color?:string; resting?:boolean }) {
+  return <Walker pos={pos} speed={1.6} resting={resting} restPos={[-5,0,-4]}>
+    <group scale={[s,s,s]}>
+      <mesh position={[0,0.35,0]} castShadow><boxGeometry args={[0.9,0.42,0.42]}/><meshStandardMaterial color={color} roughness={0.65}/></mesh>
+      <mesh position={[0.55,0.52,0.08]} castShadow><sphereGeometry args={[0.24,12,10]}/><meshStandardMaterial color={color} roughness={0.65}/></mesh>
+      <mesh position={[0.75,0.48,0.12]}><boxGeometry args={[0.16,0.1,0.16]}/><meshStandardMaterial color="#111827"/></mesh>
+      <mesh position={[0.48,0.75,0.2]} rotation={[0.3,0,0.2]}><coneGeometry args={[0.12,0.28,5]}/><meshStandardMaterial color="#78350f"/></mesh>
+      <mesh position={[0.48,0.75,-0.08]} rotation={[-0.3,0,0.2]}><coneGeometry args={[0.12,0.28,5]}/><meshStandardMaterial color="#78350f"/></mesh>
+      {[-0.28,0.25].map((x,i)=>[-0.16,0.16].map((z,j)=><mesh key={`${i}-${j}`} position={[x,0.12,z]}><cylinderGeometry args={[0.045,0.055,0.26,7]}/><meshStandardMaterial color={color}/></mesh>))}
+      <mesh position={[-0.55,0.48,0]} rotation={[0,0,0.7]}><cylinderGeometry args={[0.035,0.045,0.45,7]}/><meshStandardMaterial color={color}/></mesh>
+    </group>
+  </Walker>;
+}
+
+/* 精细农场动物 */
+function Walker({ pos, speed, resting=false, restPos, children }: { pos:THREE.Vector3Tuple; speed:number; resting?:boolean; restPos?:THREE.Vector3Tuple; children:React.ReactNode }) {
+  const ref = useRef<THREE.Group>(null!);
+  useFrame(({clock},d)=>{
+    if(!ref.current) return;
+    const target = resting && restPos ? restPos : pos;
+    ref.current.position.lerp(new THREE.Vector3(target[0],target[1],target[2]), Math.min(1,d*1.6));
+    if(!resting){ref.current.position.x+=Math.sin(clock.elapsedTime*speed+pos[0])*d*0.45;ref.current.position.z+=Math.cos(clock.elapsedTime*speed+pos[2])*d*0.35;ref.current.rotation.y=Math.sin(clock.elapsedTime*speed+pos[0])*0.35;}
+  });
+  return <group ref={ref} position={resting && restPos ? restPos : pos}>{children}</group>;
+}
+
+function CowModel({ pos, s=1, resting=false }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean }) {
+  return <Walker pos={pos} speed={0.7} resting={resting} restPos={[-9,0,-3]}>
     <group scale={[s,s,s]}>
       {/* 身体(水平躺) */}
       <mesh position={[0,0.45,0]} rotation={[Math.PI/2,0,0]} castShadow><capsuleGeometry args={[0.35,0.7,8,8]}/><meshStandardMaterial color="#fafaf9" roughness={0.4}/></mesh>
@@ -442,8 +552,8 @@ function CowModel({ pos, s=1 }: { pos:THREE.Vector3Tuple; s?:number }) {
   </Walker>;
 }
 
-function ChickenModel({ pos, s=1 }: { pos:THREE.Vector3Tuple; s?:number }) {
-  return <Walker pos={pos} speed={2.5}>
+function ChickenModel({ pos, s=1, resting=false }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean }) {
+  return <Walker pos={pos} speed={2.5} resting={resting} restPos={[-7.5,0,-3.2]}>
     <group scale={[s,s,s]}>
       <mesh position={[0,0.15,0]} rotation={[Math.PI/2,0,0]} castShadow><capsuleGeometry args={[0.13,0.22,8,8]}/><meshStandardMaterial color="#fef3c7" roughness={0.3}/></mesh>
       <mesh position={[0,0.28,0.22]} castShadow><sphereGeometry args={[0.09,10,10]}/><meshStandardMaterial color="#fef3c7" roughness={0.3}/></mesh>
@@ -460,8 +570,8 @@ function ChickenModel({ pos, s=1 }: { pos:THREE.Vector3Tuple; s?:number }) {
   </Walker>;
 }
 
-function DuckModel({ pos, s=1 }: { pos:THREE.Vector3Tuple; s?:number }) {
-  return <Walker pos={pos} speed={2}>
+function DuckModel({ pos, s=1, resting=false }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean }) {
+  return <Walker pos={pos} speed={2} resting={resting} restPos={[-8.5,0,-4.2]}>
     <group scale={[s,s,s]}>
       <mesh position={[0,0.12,0]} rotation={[Math.PI/2,0,0]} castShadow><capsuleGeometry args={[0.11,0.2,8,8]}/><meshStandardMaterial color="#fef9c3" roughness={0.3}/></mesh>
       <mesh position={[0,0.12,0.2]} castShadow><sphereGeometry args={[0.09,10,10]}/><meshStandardMaterial color="#fef9c3" roughness={0.3}/></mesh>
@@ -474,8 +584,8 @@ function DuckModel({ pos, s=1 }: { pos:THREE.Vector3Tuple; s?:number }) {
   </Walker>;
 }
 
-function PigModel({ pos, s=1 }: { pos:THREE.Vector3Tuple; s?:number }) {
-  return <Walker pos={pos} speed={1}>
+function PigModel({ pos, s=1, resting=false }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean }) {
+  return <Walker pos={pos} speed={1} resting={resting} restPos={[-6.5,0,-4]}>
     <group scale={[s,s,s]}>
       <mesh position={[0,0.3,0]} rotation={[Math.PI/2,0,0]} castShadow><capsuleGeometry args={[0.26,0.5,8,8]}/><meshStandardMaterial color="#fbcfe8" roughness={0.4}/></mesh>
       <mesh position={[0,0.4,0.35]} castShadow><sphereGeometry args={[0.16,10,10]}/><meshStandardMaterial color="#fbcfe8" roughness={0.3}/></mesh>
@@ -490,11 +600,13 @@ function PigModel({ pos, s=1 }: { pos:THREE.Vector3Tuple; s?:number }) {
   </Walker>;
 }
 
-function FarmScene() {
+function FarmScene({ resting=false }: { resting?:boolean }) {
   return (
     <group>
       <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.03,0]} receiveShadow><planeGeometry args={[28,28]}/><meshStandardMaterial color="#4ade80" roughness={0.85}/></mesh>
       <gridHelper args={[28,28,"#86efac","#bbf7d0"]} position={[0,0,0]}/>
+      <Barn/>
+      <GrassTufts/>
 
       <Pond/>
       <Windmill/>
@@ -505,10 +617,7 @@ function FarmScene() {
       <HayBale pos={[-3,0.4,-6]} rot={0.2}/>
       <HayBale pos={[-2.5,0.8,-6]} rot={-0.5}/>
 
-      <Prop key="ft1" item={{id:951,path:N("tree_default"),pos:[-11,0,-9],s:3.5,name:"树",cat:"树木"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
-      <Prop key="ft2" item={{id:952,path:N("tree_oak"),pos:[11,0,-8],s:3.5,name:"橡树",cat:"树木"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
-      <Prop key="ft3" item={{id:953,path:N("tree_pineTallA"),pos:[10,0,8],s:3.5,name:"松树",cat:"树木"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
-      <Prop key="ft4" item={{id:954,path:N("tree_palmShort"),pos:[-10,0,9],s:3,name:"棕榈",cat:"树木"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
+      <SimpleTree pos={[-12,0,-10]} s={1.5}/><SimpleTree pos={[11,0,-9]} s={1.4}/><SimpleTree pos={[10,0,8]} s={1.35}/><SimpleTree pos={[-11,0,9]} s={1.2}/><SimpleTree pos={[7,0,-11]} s={1}/>
 
       <Prop key="ff1" item={{id:961,path:N("fence_simple"),pos:[-11,0,-4],rot:[0,Math.PI/2,0],s:2.5,name:"围栏",cat:"建筑"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
       <Prop key="ff2" item={{id:962,path:N("fence_simple"),pos:[11,0,-4],rot:[0,Math.PI/2,0],s:2.5,name:"围栏",cat:"建筑"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
@@ -521,39 +630,43 @@ function FarmScene() {
       <Prop key="g4" item={{id:974,path:N("plant_bushLarge"),pos:[5,0,10],s:3,name:"灌木",cat:"灌木"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
 
       {/* 🐄 奶牛×2 */}
-      <CowModel pos={[-5,0,-2]} s={1.2}/>
-      <CowModel pos={[-7,0,-0.5]} s={1}/>
+      <CowModel pos={[-5,0,-2]} s={1.2} resting={resting}/>
+      <CowModel pos={[-7,0,-0.5]} s={1} resting={resting}/>
 
       {/* 🐔 鸡×3 */}
-      <ChickenModel pos={[5,0,3]} s={1.2}/>
-      <ChickenModel pos={[6,0,4]} s={1}/>
-      <ChickenModel pos={[4,0,3.5]} s={1.1}/>
+      <ChickenModel pos={[5,0,3]} s={1.2} resting={resting}/>
+      <ChickenModel pos={[6,0,4]} s={1} resting={resting}/>
+      <ChickenModel pos={[4,0,3.5]} s={1.1} resting={resting}/>
 
       {/* 🦆 鸭子×3 */}
-      <DuckModel pos={[2,0,-2]} s={1.2}/>
-      <DuckModel pos={[3.5,0,-1.5]} s={1}/>
-      <DuckModel pos={[2.5,0,-1]} s={1.1}/>
+      <DuckModel pos={[2,0,-2]} s={1.2} resting={resting}/>
+      <DuckModel pos={[3.5,0,-1.5]} s={1} resting={resting}/>
+      <DuckModel pos={[2.5,0,-1]} s={1.1} resting={resting}/>
 
       {/* 🐷 猪×2 */}
-      <PigModel pos={[7,0,0]} s={1.2}/>
-      <PigModel pos={[8.5,0,1]} s={1}/>
+      <PigModel pos={[7,0,0]} s={1.2} resting={resting}/>
+      <PigModel pos={[8.5,0,1]} s={1} resting={resting}/>
     </group>
   );
 }
-function PetScene() {
-  const items: Item[] = [
-    {id:501,path:F("bear"),pos:[-3,0,-2],s:4,name:"泰迪熊",cat:"宠物"},
-    {id:502,path:F("bear"),pos:[3,0,-2],rot:[0,1.5,0],s:3,name:"小熊",cat:"宠物"},
-    {id:503,path:N("fence_simpleLow"),pos:[-2,0,-5],rot:[0,Math.PI/2,0],s:3,name:"围栏",cat:"围栏"},
-    {id:504,path:N("fence_simpleLow"),pos:[2,0,-5],rot:[0,Math.PI/2,0],s:3,name:"围栏",cat:"围栏"},
-    {id:505,path:N("fence_simpleLow"),pos:[0,0,-4.5],s:3,name:"围栏",cat:"围栏"},
-    {id:506,path:N("tree_pineSmallA"),pos:[5,0,-3],s:3,name:"小松树",cat:"树木"},
-    {id:507,path:N("flower_redC"),pos:[0,0,4],s:2.5,name:"红花",cat:"花卉"},
-    {id:508,path:N("plant_bushSmall"),pos:[-5,0,3],s:2,name:"小灌木",cat:"灌木"},
-    {id:509,path:F("cardboardBoxOpen"),pos:[3,0,3],s:2.5,name:"玩具箱",cat:"玩具"},
-    {id:510,path:F("rugSquare"),pos:[0,0.01,-1],s:4,name:"游戏毯",cat:"装饰"},
-  ];
-  return <>{items.map(i=><Prop key={i.id} item={i} sel={false} onClick={()=>{}} onTransform={()=>{}}/>)}</>;
+function PetScene({ resting=false }: { resting?:boolean }) {
+  return <group>
+    <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.025,0]} receiveShadow><planeGeometry args={[28,28]}/><meshStandardMaterial color="#86efac" roughness={0.9}/></mesh>
+    <GrassTufts/>
+    <Pond/>
+    <PetHouse pos={[-5,0,-4]} color="#ef4444" label="小狗窝"/>
+    <PetHouse pos={[1,0,-5]} color="#8b5cf6" label="休息屋"/>
+    <PetHouse pos={[6,0,-3]} color="#0ea5e9" label="玩具屋"/>
+    <SimpleTree pos={[-11,0,-8]} s={1.3}/><SimpleTree pos={[10,0,-8]} s={1.15}/><SimpleTree pos={[9,0,8]} s={1.4}/><SimpleTree pos={[-9,0,8]} s={1.2}/>
+    <Prop key="pet-fence-1" item={{id:503,path:N("fence_simpleLow"),pos:[-2,0,-8],rot:[0,Math.PI/2,0],s:3,name:"围栏",cat:"围栏"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
+    <Prop key="pet-fence-2" item={{id:504,path:N("fence_simpleLow"),pos:[2,0,-8],rot:[0,Math.PI/2,0],s:3,name:"围栏",cat:"围栏"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
+    <Prop key="pet-rug" item={{id:510,path:F("rugSquare"),pos:[0,0.01,2],s:4,name:"游戏毯",cat:"装饰"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
+    <DogModel pos={[-2,0,2]} s={1.3} color="#a16207" resting={resting}/>
+    <DogModel pos={[2,0,3]} s={1.05} color="#facc15" resting={resting}/>
+    <DogModel pos={[5,0,1]} s={1.15} color="#57534e" resting={resting}/>
+    <CowModel pos={[-6,0,3]} s={0.75} resting={resting}/>
+    <DuckModel pos={[1,0,-1]} s={1.2} resting={resting}/>
+  </group>;
 }
 type SceneTab = "home"|"garden"|"farm"|"pet";
 
@@ -594,10 +707,27 @@ export default function HomeGarden3D() {
   const [gardenSel, setGardenSel] = useState<number|null>(null);
   const [gardenNotice, setGardenNotice] = useState("");
   const [weather, setWeather] = useState<HomeWeather>({ condition:"同步中", code:0, city:"北京" });
+  const [nowTick, setNowTick] = useState(()=>Date.now());
+  const [gardenResource, setGardenResource] = useState<GardenResource>(()=>{
+    try { return refillGardenResource(JSON.parse(localStorage.getItem("lingxi-garden-resource") || "null") || DEFAULT_GARDEN_RESOURCE()); } catch { return DEFAULT_GARDEN_RESOURCE(); }
+  });
+  const growthRate = getGrowthRate(time, weather);
+  const outdoorResting = time === "night" || isBadWeather(weather);
   const gardenSave = (p:GardenPlant[])=>{const next=normalizeGardenPlants(p);setGardenPlants(next);localStorage.setItem("lingxi-garden",JSON.stringify(next));};
-  const gardenWater=(id:number)=>{gardenSave(gardenPlants.map(p=>p.id===id?{...p,water:Math.min(100,p.water+25),stage:p.stage===0&&p.water>=50&&p.fertilizer>=30?1:p.stage===1&&p.water>=60?2:p.stage===2&&p.water>=80&&p.fertilizer>=60?3:p.stage as 0|1|2|3}:p));};
-  const gardenFertilize=(id:number)=>{gardenSave(gardenPlants.map(p=>p.id===id?{...p,fertilizer:Math.min(100,p.fertilizer+30),stage:p.stage===0&&p.fertilizer>=30&&p.water>=50?1:p.stage===1&&p.fertilizer>=50?2:p.stage===2&&p.fertilizer>=60&&p.water>=80?3:p.stage as 0|1|2|3}:p));};
-  const gardenHarvest=(id:number)=>{gardenSave(gardenPlants.map(p=>p.id===id?{...p,stage:0,water:0,fertilizer:0,plantedAt:Date.now()}:p));};
+  const saveResource = (r:GardenResource)=>{const next=refillGardenResource(r);setGardenResource(next);localStorage.setItem("lingxi-garden-resource",JSON.stringify(next));};
+  const gardenWater=(id:number)=>{
+    const resource = refillGardenResource(gardenResource);
+    if (resource.waterStock <= 0) { setGardenNotice("水桶正在冷却，最多可累计8桶"); window.setTimeout(()=>setGardenNotice(""),1800); return; }
+    saveResource({...resource,waterStock:resource.waterStock-1});
+    gardenSave(gardenPlants.map(p=>p.id===id?{...p,water:Math.min(100,p.water+25),boostMinutes:(p.boostMinutes||0)+4}:p));
+  };
+  const gardenFertilize=(id:number)=>{
+    const resource = refillGardenResource(gardenResource);
+    if (resource.fertilizerStock <= 0) { setGardenNotice("肥料正在冷却，最多可累计8包"); window.setTimeout(()=>setGardenNotice(""),1800); return; }
+    saveResource({...resource,fertilizerStock:resource.fertilizerStock-1});
+    gardenSave(gardenPlants.map(p=>p.id===id?{...p,fertilizer:Math.min(100,p.fertilizer+30),boostMinutes:(p.boostMinutes||0)+6}:p));
+  };
+  const gardenHarvest=(id:number)=>{gardenSave(gardenPlants.map(p=>p.id===id?{...p,stage:0,water:0,fertilizer:0,boostMinutes:0,plantedAt:Date.now()}:p));};
   const addGardenPlant=(type:"flower"|"crop",path:string,name:string)=>{
     const used = new Set(gardenPlants.map(p=>p.slot));
     const slot = GARDEN_SLOTS.find(s=>!used.has(s.id))?.id;
@@ -606,7 +736,7 @@ export default function HomeGarden3D() {
       window.setTimeout(()=>setGardenNotice(""),1800);
       return;
     }
-    const n:GardenPlant={id:Math.max(0,...gardenPlants.map(p=>p.id))+1,slot,path,name,type,stage:0,water:0,fertilizer:0,plantedAt:Date.now()};
+    const n:GardenPlant={id:Math.max(0,...gardenPlants.map(p=>p.id))+1,slot,path,name,type,stage:0,water:0,fertilizer:0,boostMinutes:0,plantedAt:Date.now()};
     gardenSave([...gardenPlants,n]);
   };
   const sel=items.find(i=>i.id===sid),selWall=walls.find(w=>w.id===wid);
@@ -618,6 +748,21 @@ export default function HomeGarden3D() {
     const timer = window.setInterval(sync, 60_000);
     return () => window.clearInterval(timer);
   }, [lightMode]);
+
+  useEffect(() => {
+    const sync = () => {
+      setNowTick(Date.now());
+      setGardenResource(prev => {
+        const next = refillGardenResource(prev);
+        if (next.waterStock !== prev.waterStock || next.fertilizerStock !== prev.fertilizerStock || next.lastWaterRefill !== prev.lastWaterRefill || next.lastFertilizerRefill !== prev.lastFertilizerRefill) {
+          localStorage.setItem("lingxi-garden-resource",JSON.stringify(next));
+        }
+        return next;
+      });
+    };
+    const timer = window.setInterval(sync, 15_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -685,9 +830,9 @@ export default function HomeGarden3D() {
             {tab!=="home" && <GardenGround/>}
             {tab!=="home" && <SkyWeather time={time} weather={weather}/>}
             {tab!=="home" && time==="night" && <><Stars/><Moon/><ShootingStars/><Fireflies n={tab==="garden"?50:30}/></>}
-            {tab==="garden" && <GardenFullScene/>}
-            {tab==="farm" && <FarmScene/>}
-            {tab==="pet" && <PetScene/>}
+            {tab==="garden" && <GardenFullScene plants={gardenPlants} selId={gardenSel} onSelect={setGardenSel} now={nowTick} growthRate={growthRate}/>}
+            {tab==="farm" && <FarmScene resting={outdoorResting}/>}
+            {tab==="pet" && <PetScene resting={outdoorResting}/>}
 
             {time==="day" ? <><ambientLight intensity={0.7} color="#fff8f0"/><directionalLight position={[10,18,10]} intensity={1.6} castShadow shadow-mapSize={[2048,2048]} color="#fffdf5"/></>
               : <><ambientLight intensity={tab==="home"?0.06:0.04} color="#1e1b4b"/><WarmLights i={tab==="home"?1.2:0.3}/></>}
@@ -723,7 +868,7 @@ export default function HomeGarden3D() {
 
       {/* ==== 右侧属性 ==== */}
       {gardenNotice && <div style={{ position:"absolute",right:210,top:70,zIndex:20,padding:"10px 14px",borderRadius:12,background:"#fff1f2",color:"#be123c",fontSize:12,fontWeight:800,boxShadow:"0 8px 24px rgba(190,18,60,0.18)" }}>{gardenNotice}</div>}
-      {tab==="garden" && <GardenPanel plants={gardenPlants} selId={gardenSel} onSelect={setGardenSel} onWater={gardenWater} onFertilize={gardenFertilize} onHarvest={gardenHarvest} onAdd={addGardenPlant}/>}
+      {tab==="garden" && <GardenPanel plants={gardenPlants} selId={gardenSel} onSelect={setGardenSel} onWater={gardenWater} onFertilize={gardenFertilize} onHarvest={gardenHarvest} onAdd={addGardenPlant} resource={gardenResource} now={nowTick} growthRate={growthRate}/>}
       {(sel||selWall) && <div style={{ width:180,background:"rgba(255,255,255,0.92)",backdropFilter:"blur(16px)",borderLeft:"1px solid #f0e0e8",padding:14,fontSize:11,flexShrink:0,overflowY:"auto" }}>
         <div style={{ fontWeight:700,color:"#44403c",fontSize:14 }}>{sel?.name||"墙体"}</div>
         <div style={{ color:"#a8a29e",fontSize:10,marginBottom:8 }}>{sel?.cat||"隔墙"}</div>
