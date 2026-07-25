@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import AuroraBackground from "@/components/AuroraBackground";
-import BeamParticles from "@/components/BeamParticles";
+import IntelligentBackdrop from "@/components/IntelligentBackdrop";
 import { authApi } from "@/lib/api";
 import { clearAuthSession, readAuthSession } from "@/lib/session";
 
@@ -89,8 +88,7 @@ export default function DashboardPage() {
 
   return (
     <main className="dashboard-page">
-      <AuroraBackground />
-      <BeamParticles />
+      <IntelligentBackdrop />
 
       <header className="dashboard-header">
         <Link href="/dashboard" className="dashboard-brand">
@@ -156,10 +154,7 @@ export default function DashboardPage() {
           overflow-x: hidden;
           padding: 24px;
           color: #0f172a;
-          background:
-            radial-gradient(circle at 14% 14%, rgba(5,150,105,.13), transparent 32%),
-            radial-gradient(circle at 86% 18%, rgba(37,99,235,.1), transparent 30%),
-            linear-gradient(135deg, #f8fafc 0%, #eefdf7 52%, #fff8ed 100%);
+          background: transparent;
         }
         .dashboard-page > * { position: relative; z-index: 1; }
         .dashboard-header {
@@ -196,7 +191,8 @@ export default function DashboardPage() {
           font-size: 13px;
           font-weight: 800;
           border: 1px solid rgba(15,23,42,.08);
-          background: rgba(255,255,255,.72);
+          background: rgba(255,255,255,.68);
+          backdrop-filter: blur(16px);
           color: #475569;
         }
         .header-actions button { cursor: pointer; }
@@ -210,9 +206,10 @@ export default function DashboardPage() {
         }
         .dashboard-hero > div:first-child, .stats-panel {
           border-radius: 24px;
-          background: rgba(255,255,255,.76);
+          background: rgba(255,255,255,.70);
           border: 1px solid rgba(255,255,255,.92);
           box-shadow: 0 24px 70px rgba(15,23,42,.08);
+          backdrop-filter: blur(18px);
         }
         .dashboard-hero > div:first-child { padding: 34px; }
         .dashboard-kicker {
@@ -247,7 +244,7 @@ export default function DashboardPage() {
           justify-content: space-between;
           align-items: center;
           border-radius: 16px;
-          background: #fff;
+          background: rgba(255,255,255,.76);
           border: 1px solid #e2e8f0;
           padding: 16px;
         }
@@ -266,9 +263,12 @@ export default function DashboardPage() {
           min-height: 220px;
           border-radius: 22px;
           padding: 24px;
-          background: rgba(255,255,255,.84);
+          background:
+            linear-gradient(145deg, rgba(255,255,255,.86), rgba(255,255,255,.62)),
+            radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--feature-color) 12%, transparent), transparent 44%);
           border: 1px solid rgba(255,255,255,.94);
           box-shadow: 0 18px 48px rgba(15,23,42,.07);
+          backdrop-filter: blur(18px);
           color: inherit;
           text-decoration: none;
           display: flex;
@@ -311,9 +311,10 @@ export default function DashboardPage() {
           min-height: 126px;
           border-radius: 18px;
           padding: 18px;
-          background: rgba(255,255,255,.78);
+          background: rgba(255,255,255,.72);
           border: 1px solid rgba(255,255,255,.92);
           box-shadow: 0 12px 32px rgba(15,23,42,.05);
+          backdrop-filter: blur(14px);
           text-decoration: none;
           color: inherit;
         }

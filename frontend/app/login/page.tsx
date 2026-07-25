@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import IntelligentBackdrop from "@/components/IntelligentBackdrop";
 import { authApi, CaptchaResponse } from "@/lib/api";
 import { setAuthSession } from "@/lib/session";
 
@@ -125,6 +126,7 @@ function LoginContent() {
 
   return (
     <main className="auth-page">
+      <IntelligentBackdrop variant="auth" />
       <section className="auth-shell">
         <header className="auth-header">
           <Link href="/" className="auth-brand">
@@ -227,10 +229,9 @@ function LoginContent() {
           padding: 28px;
           color: #0f172a;
           background:
-            radial-gradient(circle at 12% 18%, rgba(5,150,105,.14), transparent 32%),
-            radial-gradient(circle at 82% 14%, rgba(37,99,235,.12), transparent 30%),
             linear-gradient(135deg, #f8fafc 0%, #eefdf7 50%, #fff8ed 100%);
         }
+        .auth-page > * { position: relative; z-index: 1; }
         .auth-shell { max-width: 1120px; margin: 0 auto; }
         .auth-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 32px; }
         .auth-brand { display: inline-flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
@@ -248,7 +249,8 @@ function LoginContent() {
         .auth-brand small { display: block; margin-top: 3px; color: #64748b; font-size: 11px; }
         .auth-back {
           border: 1px solid rgba(15,23,42,.08);
-          background: rgba(255,255,255,.72);
+          background: rgba(255,255,255,.68);
+          backdrop-filter: blur(16px);
           border-radius: 999px;
           padding: 9px 16px;
           color: #475569;
@@ -266,9 +268,10 @@ function LoginContent() {
         .auth-intro {
           border-radius: 24px;
           padding: 44px;
-          background: rgba(255,255,255,.70);
+          background: rgba(255,255,255,.68);
           border: 1px solid rgba(255,255,255,.92);
           box-shadow: 0 24px 70px rgba(15,23,42,.08);
+          backdrop-filter: blur(18px);
         }
         .auth-kicker {
           display: inline-flex;
@@ -299,7 +302,8 @@ function LoginContent() {
           gap: 12px;
           padding: 16px;
           border: 1px solid #e2e8f0;
-          background: rgba(255,255,255,.8);
+          background: rgba(255,255,255,.72);
+          backdrop-filter: blur(12px);
           border-radius: 16px;
         }
         .auth-highlight > span {
@@ -316,7 +320,7 @@ function LoginContent() {
         .auth-card {
           border-radius: 24px;
           padding: 24px;
-          background: rgba(255,255,255,.90);
+          background: linear-gradient(145deg, rgba(255,255,255,.9), rgba(255,255,255,.68));
           border: 1px solid rgba(255,255,255,.96);
           box-shadow: 0 24px 70px rgba(15,23,42,.12);
           backdrop-filter: blur(18px);
