@@ -14,7 +14,7 @@ const tabs = [
 
 export default function BottomTabBar() {
   const pathname = usePathname();
-  if (pathname === "/") return null; // 首页不显示
+  if (pathname === "/" || pathname === "/login") return null;
 
   const icons: Record<string, React.ReactNode> = {
     weather: (
