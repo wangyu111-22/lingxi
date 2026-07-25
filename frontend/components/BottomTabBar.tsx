@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/weather", label: "天气", icon: "weather", color: "#06b6d4" },
   { href: "/workspace", label: "学习", icon: "learn", color: "#059669" },
-  { href: "/", label: "首页", icon: "home", color: "#059669", primary: true },
+  { href: "/dashboard", label: "首页", icon: "home", color: "#059669", primary: true },
   { href: "/emotion", label: "树洞", icon: "heart", color: "#ec4899" },
   { href: "/home-garden", label: "小家", icon: "garden", color: "#84cc16" },
   { href: "/beauty", label: "美美", icon: "star", color: "#f59e0b" },

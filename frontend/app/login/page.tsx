@@ -37,9 +37,9 @@ function LoginContent() {
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [loading, setLoading] = useState<"register" | "login" | "demo" | "captcha" | null>(null);
   const [error, setError] = useState("");
-  const nextPath = searchParams.get("next") || "/workspace";
+  const nextPath = searchParams.get("next") || "/dashboard";
 
-  const safeNextPath = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/workspace";
+  const safeNextPath = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/dashboard";
 
   const loadCaptcha = async () => {
     setLoading("captcha");
@@ -136,7 +136,7 @@ function LoginContent() {
               <small>注册后进入个人 Agent 空间</small>
             </span>
           </Link>
-          <Link href="/" className="auth-back">返回主页</Link>
+          <Link href="/" className="auth-back">返回入口</Link>
         </header>
 
         <div className="auth-grid">
