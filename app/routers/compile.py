@@ -415,21 +415,29 @@ async def stream_compile_status(
         raise HTTPException(status_code=404, detail="任务不存在")
 
     async def event_stream():
-        last_progress = -1
+        last_snapshot = None
         while True:
             task = compile_tasks.get(task_id)
             if not task:
                 break
             current_progress = task.get("progress", 0)
-            # 仅在进度变化时推送
-            if current_progress != last_progress:
-                last_progress = current_progress
+            snapshot = (task.get("status"), current_progress, task.get("message"))
+            # 状态、进度或消息任一变化时推送，确保终态不会因进度相同而丢失。
+            if snapshot != last_snapshot:
+                last_snapshot = snapshot
                 yield f"data: {json.dumps({'status': task['status'], 'progress': current_progress, 'message': task['message']})}\n\n"
             if task["status"] in ("completed", "failed"):
                 break
             await asyncio.sleep(1.5)
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # ==================== GET /compile/result/{bvid} ====================

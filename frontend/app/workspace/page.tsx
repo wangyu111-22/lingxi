@@ -57,8 +57,14 @@ export default function WorkspacePage() {
   const [loadingPages, setLoadingPages] = useState<Set<string>>(new Set());
   const [chatCollapsed, setChatCollapsed] = useState(true);
   const compilePollIdRef = useRef(0);
+  const compileStreamRef = useRef<(() => void) | null>(null);
   const resultRequestIdRef = useRef(0);
   const batchPollRef = useRef(0);
+
+  useEffect(() => () => {
+    compileStreamRef.current?.();
+    compileStreamRef.current = null;
+  }, []);
 
   useEffect(() => {
     const { sessionId:sid, userName:name } = readAuthSession();
@@ -108,8 +114,31 @@ export default function WorkspacePage() {
     setCompileError("");const compileKey=cid?`${bvid}_p${cid}`:bvid;setCompiling(compileKey);setCompileProgress(0);
     try{
       const{task_id}=await compileApi.compileVideo(bvid,sessionId,cid,pageTitle);const pollId=++compilePollIdRef.current;
+      compileStreamRef.current?.();
       let progress=0;
-      const poll=async()=>{try{const s=await compileApi.getStatus(task_id,sessionId);if(compilePollIdRef.current!==pollId||!isActiveSession(sessionId))return;const rp=Number(s.progress)||0;const realP=rp>1?rp/100:rp;progress=Math.max(progress,realP);setCompileProgress(Math.round(progress*100)/100);if(s.status==="completed"){setCompileProgress(1);setTimeout(()=>{setCompiling(null);setCompileProgress(0);setCompileSuccess("编译成功!");setTimeout(()=>setCompileSuccess(""),6000);try{localStorage.removeItem(`lingxi_compile_${bvid}`);}catch{}},700);void fetchResult(bvid,cid,sessionId)}else if(s.status==="failed"){setCompiling(null);setCompileError(s.message||"编译失败")}else{setTimeout(poll,2000)}}catch(e:any){if(compilePollIdRef.current===pollId&&isActiveSession(sessionId)){setCompiling(null);setCompileError(e?.message||"编译失败")}}};setTimeout(poll,2000);
+      let fallbackStarted=false;
+      const applyStatus=(s:{status:string;progress:number;message:string})=>{
+        if(compilePollIdRef.current!==pollId||!isActiveSession(sessionId))return true;
+        const rp=Number(s.progress)||0;
+        const realP=rp>1?rp/100:rp;
+        progress=Math.max(progress,realP);
+        setCompileProgress(Math.round(progress*100)/100);
+        if(s.status==="completed"){
+          setCompileProgress(1);
+          setTimeout(()=>{setCompiling(null);setCompileProgress(0);setCompileSuccess("编译成功!");setTimeout(()=>setCompileSuccess(""),6000);try{localStorage.removeItem(`lingxi_compile_${bvid}`);}catch{}},700);
+          void fetchResult(bvid,cid,sessionId);
+          return true;
+        }
+        if(s.status==="failed"){
+          setCompiling(null);
+          setCompileError(s.message||"编译失败");
+          return true;
+        }
+        return false;
+      };
+      const poll=async()=>{try{const s=await compileApi.getStatus(task_id,sessionId);if(!applyStatus(s))setTimeout(poll,2000)}catch(e:unknown){if(compilePollIdRef.current===pollId&&isActiveSession(sessionId)){setCompiling(null);setCompileError(e instanceof Error?e.message:"编译失败")}}};
+      const startFallback=()=>{if(fallbackStarted||compilePollIdRef.current!==pollId)return;fallbackStarted=true;setTimeout(poll,500)};
+      compileStreamRef.current=compileApi.subscribeStatus(task_id,sessionId,applyStatus,startFallback);
     }catch(e:any){setCompiling(null);setCompileError(e?.message||"启动失败")}
   };
 

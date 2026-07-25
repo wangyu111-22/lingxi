@@ -1014,6 +1014,12 @@ export interface VideoPagesResponse {
   pages: VideoPageInfo[];
 }
 
+export interface CompileStatus {
+  status: string;
+  progress: number;
+  message: string;
+}
+
 export const compileApi = {
   compileVideo: (bvid: string, sessionId: string, cid?: number, pageTitle?: string) =>
     request<{ task_id: string; message: string }>("/compile/video", {
@@ -1030,7 +1036,35 @@ export const compileApi = {
     const params = new URLSearchParams();
     const sid = sessionId || getSessionId();
     if (sid) params.set("session_id", sid);
-    return request<{ status: string; progress: number; message: string }>(`/compile/status/${taskId}?${params.toString()}`);
+    return request<CompileStatus>(`/compile/status/${taskId}?${params.toString()}`);
+  },
+  subscribeStatus: (
+    taskId: string,
+    sessionId: string,
+    onStatus: (status: CompileStatus) => void,
+    onDisconnect: () => void,
+  ) => {
+    if (typeof window === "undefined" || typeof EventSource === "undefined") {
+      onDisconnect();
+      return () => {};
+    }
+    const params = new URLSearchParams({ session_id: sessionId });
+    const source = new EventSource(`${API_BASE_URL}/compile/status/${taskId}/stream?${params.toString()}`);
+    source.onmessage = (event) => {
+      try {
+        const status = JSON.parse(event.data) as CompileStatus;
+        onStatus(status);
+        if (status.status === "completed" || status.status === "failed") source.close();
+      } catch {
+        source.close();
+        onDisconnect();
+      }
+    };
+    source.onerror = () => {
+      source.close();
+      onDisconnect();
+    };
+    return () => source.close();
   },
   getResult: (bvid: string, pageCid?: number, sessionId?: string | null) => {
     const params = new URLSearchParams();
