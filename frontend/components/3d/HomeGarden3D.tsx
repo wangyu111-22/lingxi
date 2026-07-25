@@ -3,6 +3,7 @@
 import { Suspense, useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, ContactShadows, Environment, Html, TransformControls } from "@react-three/drei";
+import { API_BASE_URL } from "@/lib/api";
 import * as THREE from "three";
 
 const F = (n: string) => `/models/kenney/furniture/Models/GLTF format/${n}.glb`;
@@ -758,7 +759,7 @@ export default function HomeGarden3D() {
     let alive = true;
     const loadWeather = async () => {
       try {
-        const resp = await fetch("/api/weather/current?city=%E5%8C%97%E4%BA%AC");
+        const resp = await fetch(`${API_BASE_URL}/weather/current?city=%E5%8C%97%E4%BA%AC`);
         if (!resp.ok) throw new Error("weather request failed");
         const data = await resp.json();
         if (!alive) return;

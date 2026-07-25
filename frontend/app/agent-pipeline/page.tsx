@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ZoneShell from "@/components/ZoneShell";
-
-const API = "/api";
+import { API_BASE_URL } from "@/lib/api";
 
 function getTimePeriod(): string {
   const h = new Date().getHours();
@@ -79,7 +78,7 @@ export default function AgentPipelinePage() {
 
   // Fetch real weather
   useEffect(() => {
-    fetch(API + "/weather/current?city=%E5%8C%97%E4%BA%AC")
+    fetch(API_BASE_URL + "/weather/current?city=%E5%8C%97%E4%BA%AC")
       .then((r) => r.json())
       .then((data) => setWeather(data))
       .catch(() => {})

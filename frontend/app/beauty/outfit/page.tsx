@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import ZoneShell from "@/components/ZoneShell";
 import Link from "next/link";
+import { API_BASE_URL } from "@/lib/api";
 
 const styleTags = ["休闲", "商务", "运动", "甜美", "酷帅", "优雅", "复古", "街头"];
 
@@ -184,7 +185,7 @@ export default function OutfitPage() {
     const fetchWeather = async () => {
       setLoading(true);
       try {
-        const resp = await fetch(`/api/weather/current?city=${encodeURIComponent(city)}`);
+        const resp = await fetch(`${API_BASE_URL}/weather/current?city=${encodeURIComponent(city)}`);
         if (resp.ok) {
           const data = await resp.json();
           setWeatherData(data);

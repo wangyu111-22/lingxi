@@ -4,9 +4,9 @@ import { useState, useCallback, useEffect } from "react";
 import ZoneShell from "@/components/ZoneShell";
 import VoiceButton from "@/components/VoiceButton";
 import Link from "next/link";
+import { API_BASE_URL } from "@/lib/api";
 
 const CITIES = ["北京","上海","广州","成都","杭州","深圳","武汉","南京"];
-const API = "/api";
 const WDAYS = ["周日","周一","周二","周三","周四","周五","周六"];
 
 function WIcon(c: number): string {
@@ -49,7 +49,7 @@ export default function WeatherPage() {
   const fetchWeather = useCallback(async (c: string) => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/weather/current?city=${encodeURIComponent(c)}`);
+      const r = await fetch(`${API_BASE_URL}/weather/current?city=${encodeURIComponent(c)}`);
       if (r.ok) setData(await r.json());
     } catch {}
     setLoading(false);

@@ -15,3 +15,5 @@ data/asr_tmp/
 tmp/
 *.zip
 *.tar.gz
+ui-crawl-*.ndjson
+ui-crawl-results.ndjson
