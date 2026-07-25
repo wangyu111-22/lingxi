@@ -85,6 +85,21 @@ class UserSession(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class LingxiAccount(Base):
+    """灵犀本地账号表（手机号 + 密码）"""
+    __tablename__ = 'lingxi_accounts'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    phone = Column(String(20), unique=True, index=True, nullable=False)
+    username = Column(String(100), nullable=False)
+    password_hash = Column(String(256), nullable=False)
+    password_salt = Column(String(64), nullable=False)
+    owner_mid = Column(Integer, unique=True, index=True, nullable=True)
+    is_active = Column(Boolean, default=True)
+    last_login_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class UserCollection(Base):
     """用户收藏视频表（爱心点亮）"""
     __tablename__ = 'user_collections'

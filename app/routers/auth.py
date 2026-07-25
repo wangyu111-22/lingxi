@@ -4,19 +4,110 @@ LingXiMind 知识树导航系统
 认证路由 - 处理 B站登录
 """
 from fastapi import APIRouter, HTTPException, Query, Depends
+from pydantic import BaseModel, Field
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db, get_db_context
-from app.models import QRCodeResponse, LoginStatusResponse, UserSession as UserSessionModel
+from app.models import QRCodeResponse, LoginStatusResponse, UserSession as UserSessionModel, LingxiAccount
 from app.services.bilibili import BilibiliService
-from datetime import datetime
+from datetime import datetime, timedelta
+import hashlib
+import hmac
+import random
+import re
+import secrets
 import uuid
 
 router = APIRouter(prefix="/auth", tags=["认证"])
 
 # 临时存储登录会话（生产环境应使用 Redis）
 login_sessions = {}
+captcha_sessions = {}
+
+
+class CaptchaResponse(BaseModel):
+    captcha_id: str
+    question: str
+    expires_in: int = 300
+
+
+class AccountRegisterRequest(BaseModel):
+    phone: str = Field(..., min_length=11, max_length=20)
+    username: str = Field(..., min_length=2, max_length=30)
+    password: str = Field(..., min_length=6, max_length=64)
+    captcha_id: str
+    captcha_answer: str
+
+
+class AccountLoginRequest(BaseModel):
+    phone: str = Field(..., min_length=11, max_length=20)
+    password: str = Field(..., min_length=6, max_length=64)
+
+
+def _normalize_phone(phone: str) -> str:
+    return re.sub(r"\s+", "", phone)
+
+
+def _validate_phone(phone: str) -> None:
+    if not re.fullmatch(r"1[3-9]\d{9}", phone):
+        raise HTTPException(status_code=400, detail="请输入有效的中国大陆手机号")
+
+
+def _hash_password(password: str, salt: str) -> str:
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt.encode("utf-8"),
+        120_000,
+    )
+    return digest.hex()
+
+
+def _verify_captcha(captcha_id: str, answer: str) -> None:
+    record = captcha_sessions.get(captcha_id)
+    if not record:
+        raise HTTPException(status_code=400, detail="验证码已失效，请重新获取")
+    if datetime.utcnow() > record["expires_at"]:
+        captcha_sessions.pop(captcha_id, None)
+        raise HTTPException(status_code=400, detail="验证码已过期，请重新获取")
+    if str(answer).strip() != record["answer"]:
+        raise HTTPException(status_code=400, detail="验证码错误")
+    captcha_sessions.pop(captcha_id, None)
+
+
+async def _create_account_session(db: AsyncSession, account: LingxiAccount) -> tuple[str, dict]:
+    session_id = f"lx_{uuid.uuid4().hex}"
+    owner_mid = account.owner_mid or -(10_000_000 + account.id)
+    if account.owner_mid != owner_mid:
+        account.owner_mid = owner_mid
+
+    account.last_login_at = datetime.utcnow()
+    db_session = UserSessionModel(
+        session_id=session_id,
+        bili_mid=owner_mid,
+        bili_uname=account.username,
+        bili_face="",
+        sessdata="",
+        bili_jct="",
+        dedeuserid=str(owner_mid),
+        is_valid=True,
+    )
+    db.add(db_session)
+    await db.commit()
+
+    user_info = {
+        "mid": owner_mid,
+        "uname": account.username,
+        "face": "",
+        "level": 0,
+    }
+    login_sessions[session_id] = {
+        "cookies": {},
+        "user_info": user_info,
+        "is_lingxi_account": True,
+    }
+    return session_id, user_info
 
 
 DEMO_WORKSPACE_VIDEOS = [
@@ -160,6 +251,92 @@ async def _ensure_demo_workspace_seed(db: AsyncSession, session_id: str) -> None
             )
 
     await db.flush()
+
+
+@router.get("/captcha", response_model=CaptchaResponse)
+async def generate_captcha():
+    """
+    生成注册验证码。
+
+    当前为本地算术验证码，后续可替换为短信验证码服务。
+    """
+    # 顺手清理过期验证码，避免内存长期增长。
+    now = datetime.utcnow()
+    for captcha_id, record in list(captcha_sessions.items()):
+        if now > record["expires_at"]:
+            captcha_sessions.pop(captcha_id, None)
+
+    left = random.randint(2, 9)
+    right = random.randint(1, 9)
+    captcha_id = uuid.uuid4().hex
+    captcha_sessions[captcha_id] = {
+        "answer": str(left + right),
+        "expires_at": now + timedelta(minutes=5),
+    }
+    return CaptchaResponse(
+        captcha_id=captcha_id,
+        question=f"{left} + {right} = ?",
+    )
+
+
+@router.post("/register")
+async def register_account(payload: AccountRegisterRequest, db: AsyncSession = Depends(get_db)):
+    """手机号注册灵犀账号。"""
+    phone = _normalize_phone(payload.phone)
+    username = payload.username.strip()
+    _validate_phone(phone)
+    _verify_captcha(payload.captcha_id, payload.captcha_answer)
+
+    if len(username) < 2:
+        raise HTTPException(status_code=400, detail="用户名至少需要 2 个字符")
+    if len(payload.password) < 6:
+        raise HTTPException(status_code=400, detail="密码至少需要 6 位")
+
+    result = await db.execute(select(LingxiAccount).where(LingxiAccount.phone == phone))
+    if result.scalars().first():
+        raise HTTPException(status_code=409, detail="该手机号已注册，请直接登录")
+
+    salt = secrets.token_hex(16)
+    account = LingxiAccount(
+        phone=phone,
+        username=username,
+        password_salt=salt,
+        password_hash=_hash_password(payload.password, salt),
+        is_active=True,
+    )
+    db.add(account)
+    await db.flush()
+    account.owner_mid = -(10_000_000 + account.id)
+
+    session_id, user_info = await _create_account_session(db, account)
+    return {
+        "session_id": session_id,
+        "user_info": user_info,
+        "is_new_user": True,
+    }
+
+
+@router.post("/login")
+async def login_account(payload: AccountLoginRequest, db: AsyncSession = Depends(get_db)):
+    """手机号 + 密码登录灵犀账号。"""
+    phone = _normalize_phone(payload.phone)
+    _validate_phone(phone)
+
+    result = await db.execute(select(LingxiAccount).where(LingxiAccount.phone == phone))
+    account = result.scalars().first()
+    if not account or not account.is_active:
+        raise HTTPException(status_code=401, detail="账号不存在或已停用")
+
+    password_hash = _hash_password(payload.password, account.password_salt)
+    if not hmac.compare_digest(password_hash, account.password_hash):
+        raise HTTPException(status_code=401, detail="手机号或密码错误")
+
+    session_id, user_info = await _create_account_session(db, account)
+    return {
+        "session_id": session_id,
+        "user_info": user_info,
+        "is_new_user": False,
+    }
 
 
 @router.get("/qrcode", response_model=QRCodeResponse)

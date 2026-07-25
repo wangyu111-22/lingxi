@@ -84,6 +84,18 @@ export interface UserInfo {
     level?: number;
 }
 
+export interface CaptchaResponse {
+    captcha_id: string;
+    question: string;
+    expires_in: number;
+}
+
+export interface AccountAuthResponse {
+    session_id: string;
+    user_info: UserInfo;
+    is_new_user?: boolean;
+}
+
 export interface RestoreStateResponse {
     compiled_videos: CompiledVideoItem[];
     total_compiled: number;
@@ -265,6 +277,23 @@ export interface IntentResponse {
 
 // 认证相关
 export const authApi = {
+    // 获取注册验证码（当前为算术验证码，后续可替换短信验证码）
+    getCaptcha: () => request<CaptchaResponse>("/auth/captcha"),
+
+    // 手机号注册
+    register: (data: { phone: string; username: string; password: string; captcha_id: string; captcha_answer: string }) =>
+        request<AccountAuthResponse>("/auth/register", {
+            method: "POST",
+            body: JSON.stringify(data),
+        }),
+
+    // 手机号 + 密码登录
+    login: (data: { phone: string; password: string }) =>
+        request<AccountAuthResponse>("/auth/login", {
+            method: "POST",
+            body: JSON.stringify(data),
+        }),
+
     // 获取登录二维码
     getQRCode: () => request<QRCodeResponse>("/auth/qrcode"),
 
