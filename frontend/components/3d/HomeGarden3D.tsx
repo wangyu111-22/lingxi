@@ -483,11 +483,14 @@ function GrassTufts() {
 
 function Barn({ pos=[-8,0,-5] as THREE.Vector3Tuple }: { pos?:THREE.Vector3Tuple }) {
   return <group position={pos}>
-    <mesh position={[0,1.3,0]} castShadow receiveShadow><boxGeometry args={[4.6,2.6,3.8]}/><meshStandardMaterial color="#b91c1c" roughness={0.65}/></mesh>
-    <mesh position={[0,2.85,0]} rotation={[0,0,Math.PI/4]} castShadow><boxGeometry args={[3.7,3.7,4.1]}/><meshStandardMaterial color="#7f1d1d" roughness={0.7}/></mesh>
-    <mesh position={[0,0.95,1.96]}><boxGeometry args={[1.5,1.9,0.08]}/><meshStandardMaterial color="#451a03" roughness={0.75}/></mesh>
-    <mesh position={[0,1.05,2.02]}><boxGeometry args={[0.08,1.7,0.1]}/><meshStandardMaterial color="#fef3c7"/></mesh>
-    <mesh position={[0,1.05,2.04]} rotation={[0,0,Math.PI/4]}><boxGeometry args={[0.08,1.9,0.1]}/><meshStandardMaterial color="#fef3c7"/></mesh>
+    <mesh position={[0,1.55,0]} castShadow receiveShadow><boxGeometry args={[7.2,3.1,5.4]}/><meshStandardMaterial color="#b91c1c" roughness={0.65}/></mesh>
+    <mesh position={[0,3.35,0]} rotation={[0,0,Math.PI/4]} castShadow><boxGeometry args={[5.15,5.15,5.75]}/><meshStandardMaterial color="#7f1d1d" roughness={0.7}/></mesh>
+    <mesh position={[0,0.05,0]} receiveShadow><boxGeometry args={[7.6,0.1,5.8]}/><meshStandardMaterial color="#92400e" roughness={0.9}/></mesh>
+    <mesh position={[0,1.05,2.76]}><boxGeometry args={[3.2,2.1,0.08]}/><meshStandardMaterial color="#451a03" roughness={0.75}/></mesh>
+    <mesh position={[0,1.12,2.83]}><boxGeometry args={[0.1,1.9,0.1]}/><meshStandardMaterial color="#fef3c7"/></mesh>
+    <mesh position={[0,1.12,2.86]} rotation={[0,0,Math.PI/4]}><boxGeometry args={[0.09,3.15,0.1]}/><meshStandardMaterial color="#fef3c7"/></mesh>
+    <mesh position={[0,2.45,2.82]}><boxGeometry args={[2.2,0.16,0.1]}/><meshStandardMaterial color="#fef3c7"/></mesh>
+    {[-2.65,2.65].map((x,i)=><mesh key={i} position={[x,2.0,2.83]}><boxGeometry args={[0.9,0.9,0.1]}/><meshStandardMaterial color="#fef3c7" roughness={0.5}/></mesh>)}
   </group>;
 }
 
@@ -617,22 +620,22 @@ function FarmScene({ resting=false }: { resting?:boolean }) {
       <Prop key="g4" item={{id:974,path:N("plant_bushLarge"),pos:[5,0,10],s:3,name:"灌木",cat:"灌木"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
 
       {/* 🐄 奶牛×2 */}
-      <CowModel pos={[-3.5,0,-1.5]} s={1.15} resting={resting} restPos={[-10,0,2]}/>
-      <CowModel pos={[-5.5,0,-0.3]} s={1} resting={resting} restPos={[-8.7,0,2.2]}/>
+      <CowModel pos={[-3.5,0,-1.5]} s={1.15} resting={resting} restPos={[-11.0,0,1.8]}/>
+      <CowModel pos={[-5.5,0,-0.3]} s={1} resting={resting} restPos={[-8.8,0,2.0]}/>
 
       {/* 🐔 鸡×3 */}
-      <ChickenModel pos={[5,0,3]} s={1.2} resting={resting} restPos={[-7.2,0,1.4]}/>
-      <ChickenModel pos={[6,0,4]} s={1} resting={resting} restPos={[-7.7,0,1.8]}/>
-      <ChickenModel pos={[4,0,3.5]} s={1.1} resting={resting} restPos={[-8.2,0,1.2]}/>
+      <ChickenModel pos={[5,0,3]} s={1.2} resting={resting} restPos={[-6.9,0,2.5]}/>
+      <ChickenModel pos={[6,0,4]} s={1} resting={resting} restPos={[-7.5,0,2.1]}/>
+      <ChickenModel pos={[4,0,3.5]} s={1.1} resting={resting} restPos={[-6.5,0,1.5]}/>
 
       {/* 🦆 鸭子×3 */}
-      <DuckModel pos={[1.5,0,-1.5]} s={1.2} resting={resting} restPos={[-6.8,0,0.4]}/>
-      <DuckModel pos={[3.5,0,-1.4]} s={1} resting={resting} restPos={[-6.2,0,0.9]}/>
-      <DuckModel pos={[2.4,0,-0.4]} s={1.1} resting={resting} restPos={[-6.9,0,1.2]}/>
+      <DuckModel pos={[1.5,0,-1.5]} s={1.2} resting={resting} restPos={[-6.4,0,0.2]}/>
+      <DuckModel pos={[3.5,0,-1.4]} s={1} resting={resting} restPos={[-7.2,0,0.0]}/>
+      <DuckModel pos={[2.4,0,-0.4]} s={1.1} resting={resting} restPos={[-6.5,0,0.9]}/>
 
       {/* 🐷 猪×2 */}
-      <PigModel pos={[7,0,0]} s={1.2} resting={resting} restPos={[-9.6,0,0.3]}/>
-      <PigModel pos={[8.5,0,1]} s={1} resting={resting} restPos={[-8.8,0,0.4]}/>
+      <PigModel pos={[7,0,0]} s={1.2} resting={resting} restPos={[-11.1,0,0.2]}/>
+      <PigModel pos={[8.5,0,1]} s={1} resting={resting} restPos={[-9.4,0,-0.2]}/>
     </group>
   );
 }
