@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/weather", label: "天气", icon: "weather", color: "#06b6d4" },
   { href: "/workspace", label: "学习", icon: "learn", color: "#059669" },
-  { href: "/dashboard", label: "首页", icon: "home", color: "#059669", primary: true },
   { href: "/emotion", label: "树洞", icon: "heart", color: "#ec4899" },
+  { href: "/work", label: "工作", icon: "work", color: "#2563eb" },
+  { href: "/dashboard", label: "首页", icon: "home", color: "#059669", primary: true },
+  { href: "/harmony", label: "鸿蒙", icon: "harmony", color: "#dc2626" },
   { href: "/home-garden", label: "小家", icon: "garden", color: "#84cc16" },
   { href: "/beauty", label: "美美", icon: "star", color: "#f59e0b" },
-  { href: "/work", label: "工作", icon: "work", color: "#2563eb" },
-  { href: "/harmony", label: "鸿蒙", icon: "harmony", color: "#dc2626" },
 ];
 
 export default function BottomTabBar() {
@@ -80,16 +80,14 @@ export default function BottomTabBar() {
         left: 0,
         right: 0,
         display: "flex",
-        justifyContent: "flex-start",
+        justifyContent: "center",
         alignItems: "center",
-        gap: 4,
-        padding: "6px 8px max(6px, env(safe-area-inset-bottom))",
+        gap: 8,
+        padding: "8px 10px max(8px, env(safe-area-inset-bottom))",
         background: "var(--bg-elevated)",
         borderTop: "1px solid var(--border)",
         zIndex: 9998,
         backdropFilter: "blur(16px)",
-        overflowX: "auto",
-        scrollbarWidth: "none",
       }}
     >
       {tabs.map((tab) => {
@@ -103,16 +101,19 @@ export default function BottomTabBar() {
               flexDirection: "column",
               alignItems: "center",
               gap: 2,
-              padding: "6px 10px",
-              minWidth: 58,
-              borderRadius: 12,
+              padding: tab.primary ? "8px 12px" : "6px 8px",
+              width: tab.primary ? 62 : 54,
+              minWidth: tab.primary ? 62 : 54,
+              borderRadius: tab.primary ? 18 : 12,
               textDecoration: "none",
               color: active ? tab.color : "var(--text-secondary)",
               fontWeight: active ? 600 : 400,
               fontSize: 11,
               transition: "all 0.2s",
-              background: active ? `${tab.color}10` : "transparent",
+              background: tab.primary ? `${tab.color}14` : active ? `${tab.color}10` : "transparent",
               position: "relative",
+              transform: tab.primary ? "translateY(-6px)" : "none",
+              boxShadow: tab.primary ? "0 8px 24px rgba(5,150,105,0.18)" : "none",
             }}
           >
             {tab.primary && active && (
@@ -125,7 +126,17 @@ export default function BottomTabBar() {
                 background: tab.color,
               }} />
             )}
-            {icons[tab.icon]}
+            <span style={{
+              width: tab.primary ? 34 : 24,
+              height: tab.primary ? 34 : 24,
+              display: "grid",
+              placeItems: "center",
+              borderRadius: tab.primary ? 14 : 10,
+              background: tab.primary ? "linear-gradient(135deg,#059669,#06b6d4)" : "transparent",
+              color: tab.primary ? "#fff" : "currentColor",
+            }}>
+              {icons[tab.icon]}
+            </span>
             <span>{tab.label}</span>
           </Link>
         );
