@@ -12,43 +12,56 @@ const Icon = ({ d, size = 20 }: { d: string; size?: number }) => (
   </svg>
 );
 
-const primaryFeatures = [
+const featureCards = [
   {
     href: "/workspace",
-    title: "知识工作台",
-    desc: "同步视频、编译合集、查看视频知识图与论断证据。",
+    title: "学习区",
+    desc: "视频编译、知识树、学习路径、复习、记忆系统和小灵 Agent 都集中在这里。",
     color: "#059669",
     icon: "M12 3 3 8l9 5 9-5-9-5ZM3 13l9 5 9-5M3 18l9 5 9-5",
   },
   {
-    href: "/tree",
-    title: "知识树",
-    desc: "按账号空间查看完整知识层级、节点来源和学习关系。",
-    color: "#2563eb",
-    icon: "M12 3v18M6 8h12M4 13h16M8 18h8",
+    href: "/weather",
+    title: "天气",
+    desc: "查看天气、穿搭提醒和校园生活建议。",
+    color: "#06b6d4",
+    icon: "M12 4a5 5 0 0 0-5 5 6 6 0 0 0-1.3 11.9h12.6A6 6 0 0 0 17 9a5 5 0 0 0-5-5Z",
   },
   {
-    href: "/agent",
-    title: "小灵 Agent",
-    desc: "基于你的知识库、历史记录和上下文进行问答与行动建议。",
-    color: "#8b5cf6",
-    icon: "M12 2a7 7 0 0 0-7 7v3a7 7 0 0 0 14 0V9a7 7 0 0 0-7-7ZM8 10h.01M16 10h.01M9 15c1.5 1 4.5 1 6 0",
+    href: "/emotion",
+    title: "树洞",
+    desc: "记录情绪、倾诉压力，获得陪伴式回应。",
+    color: "#ec4899",
+    icon: "M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z",
   },
-];
-
-const secondaryFeatures = [
-  { href: "/learning-path", title: "学习路径", desc: "生成目标导向的学习顺序。" },
-  { href: "/review", title: "复习中心", desc: "间隔重复和薄弱点复习。" },
-  { href: "/memory", title: "记忆系统", desc: "查看个人记忆层与遗忘状态。" },
-  { href: "/organizer", title: "整理收藏", desc: "收藏夹分类、去重和价值评估。" },
-  { href: "/search", title: "知识搜索", desc: "搜索视频、片段和知识节点。" },
-  { href: "/game", title: "知识对战", desc: "用游戏化题目巩固知识。" },
-  { href: "/weather", title: "天气与穿搭", desc: "校园生活主动建议。" },
-  { href: "/emotion", title: "心理树洞", desc: "情绪记录和陪伴式对话。" },
-  { href: "/work", title: "工作区", desc: "PPT、PDF、图表和学习材料处理。" },
-  { href: "/beauty", title: "美美区域", desc: "形象、妆容和穿搭管理。" },
-  { href: "/harmony", title: "鸿蒙全场景", desc: "多设备联动能力展示。" },
-  { href: "/home-garden", title: "温馨小家", desc: "生活空间与家庭任务。" },
+  {
+    href: "/home-garden",
+    title: "小家",
+    desc: "管理生活空间、家庭任务、宠物和小花园。",
+    color: "#84cc16",
+    icon: "M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10.5Z",
+  },
+  {
+    href: "/beauty",
+    title: "美美",
+    desc: "形象、妆容、穿搭与个人风格管理。",
+    color: "#f59e0b",
+    icon: "M12 2l2.5 6.8 7.2.3-5.6 4.5 1.9 7-6-3.9-6 3.9 1.9-7-5.6-4.5 7.2-.3L12 2Z",
+  },
+  {
+    href: "/work",
+    title: "工作区",
+    desc: "PPT、PDF、图表、绘图和学习材料处理。",
+    color: "#2563eb",
+    icon: "M4 7h16v13H4V7Zm4 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M4 12h16",
+  },
+  {
+    href: "/harmony",
+    title: "鸿蒙全景区",
+    desc: "展示鸿蒙全场景联动、Agent 技术亮点和多设备体验。",
+    color: "#8b5cf6",
+    icon: "M6 4h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 16h8M9 8h6M9 12h6",
+  },
 ];
 
 export default function DashboardPage() {
@@ -119,8 +132,13 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="primary-grid" aria-label="核心功能">
-        {primaryFeatures.map((feature) => (
+      <section className="feature-section" aria-label="功能汇总">
+        <div className="section-title">
+          <span>功能汇总</span>
+          <h2>选择你现在要进入的区域</h2>
+        </div>
+        <div className="feature-grid">
+        {featureCards.map((feature) => (
           <Link href={feature.href} key={feature.href} className="primary-card" style={{ ["--feature-color" as string]: feature.color }}>
             <span className="primary-icon"><Icon d={feature.icon} size={24} /></span>
             <div>
@@ -130,20 +148,6 @@ export default function DashboardPage() {
             <span className="card-arrow">进入</span>
           </Link>
         ))}
-      </section>
-
-      <section className="feature-section">
-        <div className="section-title">
-          <span>全部功能</span>
-          <h2>选择你现在要做的事</h2>
-        </div>
-        <div className="secondary-grid">
-          {secondaryFeatures.map((feature) => (
-            <Link href={feature.href} key={feature.href} className="secondary-card">
-              <strong>{feature.title}</strong>
-              <p>{feature.desc}</p>
-            </Link>
-          ))}
         </div>
       </section>
 
@@ -250,17 +254,14 @@ export default function DashboardPage() {
         }
         .stats-panel strong { font-size: 28px; color: #059669; }
         .stats-panel span { color: #64748b; font-size: 13px; font-weight: 800; }
-        .primary-grid, .feature-section {
+        .feature-section {
           max-width: 1180px;
           margin: 0 auto;
         }
-        .primary-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 14px;
-        }
+        .feature-section { margin-top: 22px; padding-bottom: 84px; }
+        .feature-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
         .primary-card {
-          min-height: 220px;
+          min-height: 206px;
           border-radius: 22px;
           padding: 24px;
           background:
@@ -298,31 +299,12 @@ export default function DashboardPage() {
           font-weight: 900;
           font-size: 13px;
         }
-        .feature-section { margin-top: 22px; padding-bottom: 70px; }
         .section-title { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 12px; }
         .section-title span { color: #059669; font-size: 12px; font-weight: 900; letter-spacing: .8px; }
         .section-title h2 { font-size: 24px; }
-        .secondary-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 12px;
-        }
-        .secondary-card {
-          min-height: 126px;
-          border-radius: 18px;
-          padding: 18px;
-          background: rgba(255,255,255,.72);
-          border: 1px solid rgba(255,255,255,.92);
-          box-shadow: 0 12px 32px rgba(15,23,42,.05);
-          backdrop-filter: blur(14px);
-          text-decoration: none;
-          color: inherit;
-        }
-        .secondary-card strong { display: block; font-size: 16px; color: #111827; }
-        .secondary-card p { margin-top: 8px; color: #64748b; font-size: 13px; line-height: 1.65; }
         @media (max-width: 980px) {
-          .dashboard-hero, .primary-grid { grid-template-columns: 1fr; }
-          .secondary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .dashboard-hero { grid-template-columns: 1fr; }
+          .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 560px) {
           .dashboard-page { padding: 16px; }
@@ -331,7 +313,7 @@ export default function DashboardPage() {
           .user-pill { display: none; }
           .dashboard-hero > div:first-child, .stats-panel, .primary-card { border-radius: 18px; }
           .dashboard-hero > div:first-child { padding: 24px; }
-          .secondary-grid { grid-template-columns: 1fr; }
+          .feature-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </main>

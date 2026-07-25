@@ -10,6 +10,8 @@ const tabs = [
   { href: "/emotion", label: "树洞", icon: "heart", color: "#ec4899" },
   { href: "/home-garden", label: "小家", icon: "garden", color: "#84cc16" },
   { href: "/beauty", label: "美美", icon: "star", color: "#f59e0b" },
+  { href: "/work", label: "工作", icon: "work", color: "#2563eb" },
+  { href: "/harmony", label: "鸿蒙", icon: "harmony", color: "#dc2626" },
 ];
 
 export default function BottomTabBar() {
@@ -47,6 +49,16 @@ export default function BottomTabBar() {
         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/>
       </svg>
     ),
+    work: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 12h18"/>
+      </svg>
+    ),
+    harmony: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 7h6M9 11h6M10 17h4"/>
+      </svg>
+    ),
   };
 
   const isActive = (href: string) => {
@@ -68,13 +80,16 @@ export default function BottomTabBar() {
         left: 0,
         right: 0,
         display: "flex",
-        justifyContent: "space-around",
+        justifyContent: "flex-start",
         alignItems: "center",
+        gap: 4,
         padding: "6px 8px max(6px, env(safe-area-inset-bottom))",
         background: "var(--bg-elevated)",
         borderTop: "1px solid var(--border)",
         zIndex: 9998,
         backdropFilter: "blur(16px)",
+        overflowX: "auto",
+        scrollbarWidth: "none",
       }}
     >
       {tabs.map((tab) => {
@@ -89,6 +104,7 @@ export default function BottomTabBar() {
               alignItems: "center",
               gap: 2,
               padding: "6px 10px",
+              minWidth: 58,
               borderRadius: 12,
               textDecoration: "none",
               color: active ? tab.color : "var(--text-secondary)",
