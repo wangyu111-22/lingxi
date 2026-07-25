@@ -7,8 +7,7 @@ import KnowledgeTimeline from "@/components/KnowledgeTimeline";
 import ConceptClaimList from "@/components/ConceptClaimList";
 import EvidenceChat from "@/components/EvidenceChat";
 import VideoPlayer from "@/components/VideoPlayer";
-import LoginModal from "@/components/LoginModal";
-import { authApi, favoritesApi, compileApi, knowledgeApi, collectionApi, FavoriteFolder, RestoreStateResponse, CompileResult, VideoPageInfo, UserInfo } from "@/lib/api";
+import { authApi, compileApi, knowledgeApi, collectionApi, RestoreStateResponse, CompileResult, VideoPageInfo } from "@/lib/api";
 import { readAuthSession, setAuthSession } from "@/lib/session";
 import { isActiveSession, useAuthSession } from "@/lib/session";
 import dynamic from "next/dynamic";
@@ -33,7 +32,6 @@ const FEATURES = [
 
 export default function WorkspacePage() {
   const { sessionId } = useAuthSession();
-  const [showLogin, setShowLogin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
   const [demoLoading, setDemoLoading] = useState(false);
@@ -116,7 +114,6 @@ export default function WorkspacePage() {
   const tabs:{key:TabKey;label:string}[]=[{key:"video",label:"视频"},{key:"map",label:"知识图"},{key:"claims",label:"论断"}];
   const selectedVideo=videos.find(v=>v.bvid===selectedBvid);
 
-  const onLogin = (sid:string, info:UserInfo) => { setShowLogin(false); setIsLoggedIn(true); setUserName(info.uname); setAuthSession(sid, info.uname); window.location.reload(); };
   const onDemoLogin = async () => { setDemoLoading(true); try { const r = await authApi.loginAsDemo(); setAuthSession(r.session_id, r.user_info.uname); setIsLoggedIn(true); setUserName(r.user_info.uname); window.location.reload(); } catch(e:any){} setDemoLoading(false); };
 
   return (
@@ -129,7 +126,7 @@ export default function WorkspacePage() {
             <div style={{ fontSize:12,color:"#6366f1",marginTop:4 }}>同步收藏夹，AI编译视频知识库</div>
           </div>
           <div style={{ display:"flex",gap:8 }}>
-            <button onClick={()=>setShowLogin(true)} style={{ padding:"10px 24px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700 }}>🔑 B站扫码登录</button>
+            <Link href="/login" style={{ padding:"10px 24px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,textDecoration:"none" }}>🔑 登录 / 注册</Link>
             <button onClick={onDemoLogin} disabled={demoLoading} style={{ padding:"10px 24px",borderRadius:14,border:"1px solid #c7d2fe",background:"#fff",color:"#6366f1",cursor:"pointer",fontSize:13,fontWeight:600 }}>{demoLoading?"...":"🎭 演示账号"}</button>
           </div>
         </div>
@@ -194,7 +191,6 @@ export default function WorkspacePage() {
 
       {compileSuccess&&<div style={{ position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.25)" }} onClick={()=>setCompileSuccess("")}><div style={{ background:"#10b981",color:"#fff",padding:"16px 40px",borderRadius:14,fontSize:14,fontWeight:600 }}>✅ {compileSuccess}</div></div>}
       {compileError&&<div style={{ background:"#fef2f2",border:"1px solid #fecaca",color:"#dc2626",padding:"10px 16px",borderRadius:8,margin:"8px 0",fontSize:13,display:"flex",justifyContent:"space-between" }}><span>⚠ {compileError}</span><button onClick={()=>setCompileError("")} style={{ background:"none",border:"none",cursor:"pointer",color:"#dc2626",fontSize:16 }}>×</button></div>}
-      <LoginModal isOpen={showLogin} onClose={()=>setShowLogin(false)} onSuccess={onLogin}/>
     </LearnPageShell>
   );
 }

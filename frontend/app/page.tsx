@@ -246,7 +246,7 @@ export default function Home() {
             </span>
             <button onClick={onLogout} style={{ padding:"7px 16px",borderRadius:20,border:"1px solid #e2e8f0",background:"#fff",color:"#64748b",cursor:"pointer",fontSize:12,fontWeight:500 }}>退出</button>
           </> : <>
-            <Link href="/workspace" style={{ padding:"9px 22px",borderRadius:20,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,textDecoration:"none",boxShadow:"0 4px 16px rgba(99,102,241,0.25)" }}>学习专区</Link>
+            <Link href="/login" style={{ padding:"9px 22px",borderRadius:20,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,textDecoration:"none",boxShadow:"0 4px 16px rgba(99,102,241,0.25)" }}>登录 / 注册</Link>
           </>}
         </div>
       </header>
@@ -309,9 +309,6 @@ export default function Home() {
       <footer style={{ textAlign:"center",padding:"24px",fontSize:12,color:"#94a3b8",position:"relative",zIndex:1 }}>
         灵犀 LingXi © 2026 · 全场景个人 AI 伙伴 · 华为鸿蒙生态
       </footer>
-
-      {demoError && <p style={{ color:"#ef4444",fontSize:13,textAlign:"center" }}>{demoError}</p>}
-      <LoginModal isOpen={showLogin} onClose={()=>setShowLogin(false)} onSuccess={onLogin}/>
 
       {/* 全局动画 + 响应式 */}
       <style jsx global>{`
