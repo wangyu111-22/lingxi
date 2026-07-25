@@ -162,22 +162,40 @@ const CATALOG = [
 ];
 
 /* ===== 花园数据(生长系统) ===== */
-type GardenPlant = { id:number; path:string; name:string; type:"flower"|"crop"; stage:0|1|2|3; water:number; fertilizer:number; plantedAt:number };
+type GardenPlant = { id:number; path:string; name:string; type:"flower"|"crop"; stage:0|1|2|3; water:number; fertilizer:number; plantedAt:number; slot?:number };
+type HomeWeather = { condition:string; code:number; temp?:number; city:string };
+const GARDEN_SLOTS = Array.from({length:24},(_,i)=>({
+  id:i,
+  pos:[-11 + (i%6)*3.6,0,8 - Math.floor(i/6)*3.4] as [number,number,number],
+}));
+const MAX_GARDEN_PLANTS = GARDEN_SLOTS.length;
+const normalizeGardenPlants = (plants:GardenPlant[]) => {
+  const used = new Set<number>();
+  const normalized: GardenPlant[] = [];
+  plants.forEach((plant, index) => {
+    let slot = typeof plant.slot === "number" && plant.slot >= 0 && plant.slot < MAX_GARDEN_PLANTS && !used.has(plant.slot) ? plant.slot : -1;
+    if (slot < 0) slot = GARDEN_SLOTS.find(s => !used.has(s.id))?.id ?? -1;
+    if (slot < 0) return;
+    used.add(slot);
+    normalized.push({...plant, slot, id: plant.id || 600 + index});
+  });
+  return normalized;
+};
 const initialGarden: GardenPlant[] = [
   // 花卉区 (左侧 x:-10~-1)
-  {id:601,path:N("flower_purpleA"),name:"紫色花",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
-  {id:602,path:N("flower_redB"),name:"红花",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
-  {id:603,path:N("flower_yellowC"),name:"黄花",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
-  {id:604,path:N("flower_purpleB"),name:"紫花B",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
-  {id:605,path:N("flower_redA"),name:"红花A",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
-  {id:606,path:N("flower_yellowA"),name:"黄花A",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:601,slot:0,path:N("flower_purpleA"),name:"紫色花",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:602,slot:1,path:N("flower_redB"),name:"红花",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:603,slot:2,path:N("flower_yellowC"),name:"黄花",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:604,slot:6,path:N("flower_purpleB"),name:"紫花B",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:605,slot:7,path:N("flower_redA"),name:"红花A",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:606,slot:8,path:N("flower_yellowA"),name:"黄花A",type:"flower",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
   // 作物区 (右侧 x:1~10)
-  {id:611,path:N("crop_carrot"),name:"胡萝卜",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
-  {id:612,path:N("crop_pumpkin"),name:"南瓜",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
-  {id:613,path:N("crop_melon"),name:"西瓜",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
-  {id:614,path:N("crop_turnip"),name:"萝卜",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
-  {id:615,path:N("crops_cornStageA"),name:"玉米",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
-  {id:616,path:N("crops_wheatStageA"),name:"小麦",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:611,slot:15,path:N("crop_carrot"),name:"胡萝卜",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:612,slot:16,path:N("crop_pumpkin"),name:"南瓜",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:613,slot:17,path:N("crop_melon"),name:"西瓜",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:614,slot:21,path:N("crop_turnip"),name:"萝卜",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:615,slot:22,path:N("crops_cornStageA"),name:"玉米",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
+  {id:616,slot:23,path:N("crops_wheatStageA"),name:"小麦",type:"crop",stage:0,water:0,fertilizer:0,plantedAt:Date.now()},
 ];
 
 function GrowingPlant({ plant, sel, onClick, pos }: { plant:GardenPlant; sel:boolean; onClick:()=>void; pos:[number,number,number] }) {
@@ -194,46 +212,46 @@ function GrowingPlant({ plant, sel, onClick, pos }: { plant:GardenPlant; sel:boo
 }
 
 /* ===== 花园场景 ===== */
-function GardenFullScene() {
-  const [plants, setPlants] = useState<GardenPlant[]>(()=>{
-    try{const s=localStorage.getItem("lingxi-garden");return s?JSON.parse(s):initialGarden;}catch{return initialGarden;}
-  });
-  const [selId, setSelId] = useState<number|null>(null);
-  const [msg, setMsg] = useState("");
-  const save = (p:GardenPlant[])=>{setPlants(p);localStorage.setItem("lingxi-garden",JSON.stringify(p));};
-  const water=(id:number)=>{save(plants.map(p=>p.id===id?{...p,water:Math.min(100,p.water+25),stage:p.stage===0&&p.water>=50&&p.fertilizer>=30?1:p.stage===1&&p.water>=60?2:p.stage===2&&p.water>=80&&p.fertilizer>=60?3:p.stage as 0|1|2|3}:p));setMsg("💧 浇水完成!");setTimeout(()=>setMsg(""),1500);};
-  const fertilize=(id:number)=>{save(plants.map(p=>p.id===id?{...p,fertilizer:Math.min(100,p.fertilizer+30),stage:p.stage===0&&p.fertilizer>=30&&p.water>=50?1:p.stage===1&&p.fertilizer>=50?2:p.stage===2&&p.fertilizer>=60&&p.water>=80?3:p.stage as 0|1|2|3}:p));setMsg("🧪 施肥完成!");setTimeout(()=>setMsg(""),1500);};
-  const harvest=(id:number)=>{save(plants.map(p=>p.id===id?{...p,stage:0,water:0,fertilizer:0,plantedAt:Date.now()}:p));setMsg("🧺 收获! 重新播种~");setTimeout(()=>setMsg(""),2000);};
-  const sel=plants.find(p=>p.id===selId);
-
-  // 划分区域位置: 花卉区 x:-8~-1, 作物区 x:1~8
-  const grid=(idx:number,isFlower:boolean):[number,number,number]=>{const row=idx%3,col=Math.floor(idx/3);return[isFlower?-7+row*3:2+row*3,0,7-col*2.5];};
-
+function GardenFullScene({ plants, selId, onSelect }: {
+  plants:GardenPlant[]; selId:number|null; onSelect:(id:number|null)=>void;
+}) {
+  const fenceItems = [
+    ...Array.from({length:7},(_,i)=>({id:900+i,path:N("fence_simple"),pos:[-12+i*3.6,0,11.2] as THREE.Vector3Tuple,s:2.05,name:"围栏",cat:"建筑"})),
+    ...Array.from({length:7},(_,i)=>({id:920+i,path:N("fence_simple"),pos:[-12+i*3.6,0,-10.2] as THREE.Vector3Tuple,s:2.05,name:"围栏",cat:"建筑"})),
+    ...Array.from({length:6},(_,i)=>({id:940+i,path:N("fence_simple"),pos:[-13.2,0,9-i*3.6] as THREE.Vector3Tuple,rot:[0,Math.PI/2,0] as THREE.Vector3Tuple,s:2.05,name:"围栏",cat:"建筑"})),
+    ...Array.from({length:6},(_,i)=>({id:960+i,path:N("fence_simple"),pos:[10.4,0,9-i*3.6] as THREE.Vector3Tuple,rot:[0,Math.PI/2,0] as THREE.Vector3Tuple,s:2.05,name:"围栏",cat:"建筑"})),
+  ];
   return (
     <group>
       {/* 区域地面 */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[-4.5,-0.005,6]} receiveShadow><planeGeometry args={[9,7]}/><meshStandardMaterial color="#fce7f3" roughness={0.7}/></mesh>
-      <mesh rotation={[-Math.PI/2,0,0]} position={[4.5,-0.005,6]} receiveShadow><planeGeometry args={[9,7]}/><meshStandardMaterial color="#fef3c7" roughness={0.7}/></mesh>
+      <mesh rotation={[-Math.PI/2,0,0]} position={[-7,-0.005,1]} receiveShadow><planeGeometry args={[12,20]}/><meshStandardMaterial color="#fce7f3" roughness={0.78}/></mesh>
+      <mesh rotation={[-Math.PI/2,0,0]} position={[3,-0.004,1]} receiveShadow><planeGeometry args={[8,20]}/><meshStandardMaterial color="#fef3c7" roughness={0.78}/></mesh>
+      <mesh rotation={[-Math.PI/2,0,0]} position={[12.6,-0.003,1]} receiveShadow><planeGeometry args={[2.8,20]}/><meshStandardMaterial color="#dcfce7" roughness={0.85}/></mesh>
 
       {/* 围栏 */}
-      <Prop key="fl" item={{id:901,path:N("fence_simple"),pos:[-9.5,0,7.5],rot:[0,Math.PI/2,0],s:1.8,name:"围栏",cat:"建筑"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
-      <Prop key="fr" item={{id:902,path:N("fence_simple"),pos:[9.5,0,7.5],rot:[0,Math.PI/2,0],s:1.8,name:"围栏",cat:"建筑"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
-      <Prop key="ft" item={{id:903,path:N("fence_simple"),pos:[0,0,9.5],s:1.8,name:"中隔栏",cat:"建筑"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
-      <Prop key="fb" item={{id:904,path:N("fence_simple"),pos:[-4.5,0,3.5],s:1.8,name:"围栏",cat:"建筑"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
-      <Prop key="fbr" item={{id:905,path:N("fence_simple"),pos:[4.5,0,3.5],s:1.8,name:"围栏",cat:"建筑"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
+      {fenceItems.map(item=><Prop key={item.id} item={item} sel={false} onClick={()=>{}} onTransform={()=>{}}/>)}
 
       {/* 分区标牌(大号清晰) */}
-      <Html position={[-4.5,0.5,10]} center transform style={{pointerEvents:"none"}}>
+      <Html position={[-7,0.5,12]} center transform style={{pointerEvents:"none"}}>
         <div style={{background:"linear-gradient(135deg,#ec4899,#f472b6)",color:"#fff",padding:"8px 20px",borderRadius:14,fontSize:16,fontWeight:800,boxShadow:"0 4px 16px rgba(236,72,153,0.3)",whiteSpace:"nowrap"}}>🌸 花卉区</div>
       </Html>
-      <Html position={[4.5,0.5,10]} center transform style={{pointerEvents:"none"}}>
+      <Html position={[3,0.5,12]} center transform style={{pointerEvents:"none"}}>
         <div style={{background:"linear-gradient(135deg,#f59e0b,#f97316)",color:"#fff",padding:"8px 20px",borderRadius:14,fontSize:16,fontWeight:800,boxShadow:"0 4px 16px rgba(245,158,11,0.3)",whiteSpace:"nowrap"}}>🌽 作物区</div>
       </Html>
 
-      {/* 植物 */}
-      {plants.map((p,i)=><GrowingPlant key={p.id} plant={p} sel={selId===p.id} onClick={()=>setSelId(selId===p.id?null:p.id)} pos={grid(p.type==="flower"?i%6:i-6,p.type==="flower")}/>)}
-
-      {/* 操作面板: 在3D视口上方, 不用Html组件 */}
+      {GARDEN_SLOTS.map(slot=>{
+        const plant = plants.find(p=>p.slot===slot.id);
+        return <group key={slot.id} position={slot.pos}>
+          <mesh rotation={[-Math.PI/2,0,0]} position={[0,0.01,0]} receiveShadow>
+            <boxGeometry args={[2.5,2.5,0.08]}/>
+            <meshStandardMaterial color={plant?plant.type==="flower"?"#fbcfe8":"#fed7aa":"#a16207"} roughness={0.82}/>
+          </mesh>
+          {!plant && <Html position={[0,0.18,0]} center style={{pointerEvents:"none"}}>
+            <span style={{background:"rgba(255,255,255,0.72)",color:"#78716c",padding:"2px 8px",borderRadius:8,fontSize:10,fontWeight:700}}>空地</span>
+          </Html>}
+        </group>;
+      })}
+      {plants.map(p=><GrowingPlant key={p.id} plant={p} sel={selId===p.id} onClick={()=>onSelect(selId===p.id?null:p.id)} pos={GARDEN_SLOTS[p.slot ?? 0]?.pos ?? [0,0,0]}/>)}
     </group>
   );
 }
@@ -245,6 +263,7 @@ function GardenPanel({ plants, selId, onSelect, onWater, onFertilize, onHarvest,
   onAdd:(type:"flower"|"crop",path:string,name:string)=>void;
 }) {
   const sel=plants.find(p=>p.id===selId);
+  const isFull = plants.length >= MAX_GARDEN_PLANTS;
   const PLANT_CHOICES = [
     {type:"flower"as const,path:N("flower_purpleA"),name:"紫色花"},{type:"flower"as const,path:N("flower_redB"),name:"红花"},
     {type:"flower"as const,path:N("flower_yellowC"),name:"黄花"},{type:"flower"as const,path:N("flower_purpleB"),name:"紫花B"},
@@ -255,15 +274,19 @@ function GardenPanel({ plants, selId, onSelect, onWater, onFertilize, onHarvest,
   return (
     <div style={{ width:190,background:"rgba(255,255,255,0.92)",backdropFilter:"blur(16px)",borderLeft:"1px solid #f0e0e8",padding:14,fontSize:11,flexShrink:0,overflowY:"auto",display:"flex",flexDirection:"column",gap:8 }}>
       <div style={{ fontWeight:700,color:"#44403c",fontSize:14 }}>🌿 花园管理</div>
+      <div style={{ padding:"8px 10px",borderRadius:10,background:isFull?"#fff1f2":"#ecfdf5",color:isFull?"#be123c":"#047857",fontWeight:700 }}>
+        已种植 {plants.length}/{MAX_GARDEN_PLANTS} · 每格一颗
+      </div>
 
       {/* 播种区 */}
       <div style={{ fontWeight:700,color:"#ec4899",fontSize:10 }}>🌱 播种新植物</div>
       <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:3 }}>
-        {PLANT_CHOICES.map(c=><button key={c.name} onClick={()=>onAdd(c.type,c.path,c.name)} style={{ padding:"6px 4px",borderRadius:7,border:"1px solid #fce4ec",background:"#fff",cursor:"pointer",fontSize:10,color:"#57534e",fontWeight:500,textAlign:"center" }}>{c.name}</button>)}
+        {PLANT_CHOICES.map(c=><button key={c.name} disabled={isFull} onClick={()=>onAdd(c.type,c.path,c.name)} style={{ padding:"6px 4px",borderRadius:7,border:"1px solid #fce4ec",background:isFull?"#f5f5f4":"#fff",cursor:isFull?"not-allowed":"pointer",fontSize:10,color:isFull?"#a8a29e":"#57534e",fontWeight:500,textAlign:"center" }}>{c.name}</button>)}
       </div>
+      {isFull && <div style={{ color:"#be123c",fontSize:10,lineHeight:1.5 }}>种植格已满，不能继续叠加。收获后原格会重新播种，不会占新格。</div>}
 
       {/* 已种植列表 */}
-      <div style={{ fontWeight:700,color:"#ec4899",fontSize:10,marginTop:4 }}>🌳 已种植 ({plants.length})</div>
+      <div style={{ fontWeight:700,color:"#ec4899",fontSize:10,marginTop:4 }}>🌳 已种植 ({plants.length}/{MAX_GARDEN_PLANTS})</div>
       <div style={{ maxHeight:200,overflowY:"auto" }}>
         {plants.map(p=><button key={p.id} onClick={()=>onSelect(selId===p.id?null:p.id)}
           style={{ display:"block",width:"100%",padding:"6px 8px",borderRadius:7,border:selId===p.id?"2px solid #6366f1":"1px solid #fce4ec",background:selId===p.id?"#eef2ff":"#fff",cursor:"pointer",fontSize:10,textAlign:"left",marginBottom:2 }}>
@@ -282,6 +305,49 @@ function GardenPanel({ plants, selId, onSelect, onWater, onFertilize, onHarvest,
       </div>}
     </div>
   );
+}
+
+function CloudCluster({ pos, color="#ffffff", opacity=0.82 }: { pos:THREE.Vector3Tuple; color?:string; opacity?:number }) {
+  return <group position={pos}>
+    {[[0,0,0,1.2],[-0.9,-0.05,0,0.85],[0.9,0.02,0.05,0.95],[0.1,0.28,0,0.9],[1.55,-0.08,0,0.65]].map(([x,y,z,s],i)=>
+      <mesh key={i} position={[x,y,z]} scale={[s,s*0.6,s*0.55]}>
+        <sphereGeometry args={[1,18,12]}/>
+        <meshStandardMaterial color={color} transparent opacity={opacity} roughness={0.9}/>
+      </mesh>
+    )}
+  </group>;
+}
+
+function RainField() {
+  const ref = useRef<THREE.Group>(null!);
+  useFrame((_,d)=>{ if(ref.current) ref.current.position.y = ref.current.position.y - d*6 < -2 ? 6 : ref.current.position.y - d*6; });
+  return <group ref={ref}>
+    {Array.from({length:72},(_,i)=>{
+      const x=-12+(i%12)*2.1, z=-10+Math.floor(i/12)*3.2;
+      return <mesh key={i} position={[x,4+(i%5)*0.35,z]} rotation={[0.25,0,0]}>
+        <boxGeometry args={[0.025,0.7,0.025]}/>
+        <meshBasicMaterial color="#7dd3fc" transparent opacity={0.58}/>
+      </mesh>;
+    })}
+  </group>;
+}
+
+function SkyWeather({ time, weather }: { time:TimeOfDay; weather:HomeWeather }) {
+  const code = weather.code;
+  const isRain = code >= 51 && code <= 82;
+  const isCloudy = isRain || code === 2 || code === 3 || /云|阴|雨|雪/.test(weather.condition);
+  const cloudColor = time === "night" ? "#c7d2fe" : isRain ? "#cbd5e1" : "#ffffff";
+  return <group>
+    <mesh position={[0,18,-14]}>
+      <sphereGeometry args={[time==="night"?1.1:1.5,32,16]}/>
+      <meshBasicMaterial color={time==="night"?"#e0e7ff":"#facc15"}/>
+    </mesh>
+    <CloudCluster pos={[-9,10,-6]} color={cloudColor} opacity={isCloudy?0.9:0.72}/>
+    <CloudCluster pos={[3,12,-10]} color={cloudColor} opacity={isCloudy?0.86:0.55}/>
+    <CloudCluster pos={[10,9,-2]} color={cloudColor} opacity={isCloudy?0.8:0.45}/>
+    {isCloudy && <CloudCluster pos={[-1,8,8]} color={cloudColor} opacity={0.68}/>}
+    {isRain && <RainField/>}
+  </group>;
 }
 
 /* ===== 农场: 池塘+风车+动物 ===== */
@@ -523,16 +589,26 @@ export default function HomeGarden3D() {
 
     // 花园状态
   const [gardenPlants, setGardenPlants] = useState<GardenPlant[]>(()=>{
-    try{const s=localStorage.getItem("lingxi-garden");return s?JSON.parse(s):initialGarden;}catch{return initialGarden;}
+    try{const s=localStorage.getItem("lingxi-garden");return normalizeGardenPlants(s?JSON.parse(s):initialGarden);}catch{return normalizeGardenPlants(initialGarden);}
   });
   const [gardenSel, setGardenSel] = useState<number|null>(null);
-  const gardenSave = (p:GardenPlant[])=>{setGardenPlants(p);localStorage.setItem("lingxi-garden",JSON.stringify(p));};
+  const [gardenNotice, setGardenNotice] = useState("");
+  const [weather, setWeather] = useState<HomeWeather>({ condition:"同步中", code:0, city:"北京" });
+  const gardenSave = (p:GardenPlant[])=>{const next=normalizeGardenPlants(p);setGardenPlants(next);localStorage.setItem("lingxi-garden",JSON.stringify(next));};
   const gardenWater=(id:number)=>{gardenSave(gardenPlants.map(p=>p.id===id?{...p,water:Math.min(100,p.water+25),stage:p.stage===0&&p.water>=50&&p.fertilizer>=30?1:p.stage===1&&p.water>=60?2:p.stage===2&&p.water>=80&&p.fertilizer>=60?3:p.stage as 0|1|2|3}:p));};
   const gardenFertilize=(id:number)=>{gardenSave(gardenPlants.map(p=>p.id===id?{...p,fertilizer:Math.min(100,p.fertilizer+30),stage:p.stage===0&&p.fertilizer>=30&&p.water>=50?1:p.stage===1&&p.fertilizer>=50?2:p.stage===2&&p.fertilizer>=60&&p.water>=80?3:p.stage as 0|1|2|3}:p));};
   const gardenHarvest=(id:number)=>{gardenSave(gardenPlants.map(p=>p.id===id?{...p,stage:0,water:0,fertilizer:0,plantedAt:Date.now()}:p));};
-  const addGardenPlant=(pt:typeof initialGarden[0])=>{const n:GardenPlant={...pt,id:Math.max(0,...gardenPlants.map(p=>p.id))+1,stage:0,water:0,fertilizer:0,plantedAt:Date.now()};gardenSave([...gardenPlants,n]);};
-  const gardenSelPlant = gardenPlants.find(p=>p.id===gardenSel);
-
+  const addGardenPlant=(type:"flower"|"crop",path:string,name:string)=>{
+    const used = new Set(gardenPlants.map(p=>p.slot));
+    const slot = GARDEN_SLOTS.find(s=>!used.has(s.id))?.id;
+    if (slot === undefined) {
+      setGardenNotice("种植格已满，每个格子只能种一颗");
+      window.setTimeout(()=>setGardenNotice(""),1800);
+      return;
+    }
+    const n:GardenPlant={id:Math.max(0,...gardenPlants.map(p=>p.id))+1,slot,path,name,type,stage:0,water:0,fertilizer:0,plantedAt:Date.now()};
+    gardenSave([...gardenPlants,n]);
+  };
   const sel=items.find(i=>i.id===sid),selWall=walls.find(w=>w.id===wid);
 
   useEffect(() => {
@@ -542,6 +618,29 @@ export default function HomeGarden3D() {
     const timer = window.setInterval(sync, 60_000);
     return () => window.clearInterval(timer);
   }, [lightMode]);
+
+  useEffect(() => {
+    let alive = true;
+    const loadWeather = async () => {
+      try {
+        const resp = await fetch("/api/weather/current?city=%E5%8C%97%E4%BA%AC");
+        if (!resp.ok) throw new Error("weather request failed");
+        const data = await resp.json();
+        if (!alive) return;
+        setWeather({
+          city: data.city || "北京",
+          condition: data.current?.condition || "天气同步",
+          code: Number(data.current?.weather_code ?? 0),
+          temp: typeof data.current?.temp === "number" ? data.current.temp : undefined,
+        });
+      } catch {
+        if (alive) setWeather({ condition:"天气暂不可用", code:0, city:"北京" });
+      }
+    };
+    loadWeather();
+    const timer = window.setInterval(loadWeather, 10 * 60_000);
+    return () => { alive = false; window.clearInterval(timer); };
+  }, []);
 
   const toggleLightMode = () => {
     const next = time === "day" ? "night" : "day";
@@ -584,6 +683,7 @@ export default function HomeGarden3D() {
               <Gizmo sid={sid} items={items} setItems={setItems}/>
             </>}
             {tab!=="home" && <GardenGround/>}
+            {tab!=="home" && <SkyWeather time={time} weather={weather}/>}
             {tab!=="home" && time==="night" && <><Stars/><Moon/><ShootingStars/><Fireflies n={tab==="garden"?50:30}/></>}
             {tab==="garden" && <GardenFullScene/>}
             {tab==="farm" && <FarmScene/>}
@@ -599,6 +699,10 @@ export default function HomeGarden3D() {
 
         <button onClick={()=>setCatOpen(!catOpen)} style={{ position:"absolute",top:12,left:12,width:36,height:36,borderRadius:10,border:"1px solid #fce4ec",background:"rgba(255,255,255,0.85)",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(8px)" }}>{catOpen?"◀":"📦"}</button>
         <div style={{ position:"absolute",top:12,right:12,display:"flex",gap:8,alignItems:"center" }}>
+          <div title="同步天气功能" style={{ height:44,padding:"0 12px",borderRadius:14,border:"1px solid rgba(255,255,255,0.2)",background:time==="night"?"rgba(15,23,42,0.78)":"rgba(255,255,255,0.82)",backdropFilter:"blur(8px)",fontSize:12,fontWeight:700,color:time==="night"?"#e0f2fe":"#0369a1",display:"flex",alignItems:"center",gap:6 }}>
+            <span>{weather.code>=51&&weather.code<=82?"🌧️":weather.code===2||weather.code===3?"☁️":time==="night"?"🌙":"☀️"}</span>
+            <span>{weather.city} {weather.condition}{typeof weather.temp==="number"?` ${Math.round(weather.temp)}°C`:""}</span>
+          </div>
           <button onClick={toggleLightMode} title={lightMode==="auto"?"自动跟随时间，点击后手动切换":"手动模式，点击切换亮暗"} style={{ height:44,minWidth:94,padding:"0 12px",borderRadius:14,border:"1px solid rgba(255,255,255,0.2)",background:time==="night"?"rgba(30,20,60,0.85)":"rgba(255,255,255,0.85)",backdropFilter:"blur(8px)",cursor:"pointer",fontSize:13,fontWeight:700,color:time==="night"?"#f8fafc":"#475569",display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}>
             <span style={{ fontSize:20 }}>{time==="night"?"🌙":"☀️"}</span>
             <span>{lightMode==="auto"?"自动":"手动"}</span>
@@ -618,7 +722,8 @@ export default function HomeGarden3D() {
       </div>
 
       {/* ==== 右侧属性 ==== */}
-      {tab==="garden" && <GardenPanel plants={gardenPlants} selId={gardenSel} onSelect={setGardenSel} onWater={gardenWater} onFertilize={gardenFertilize} onHarvest={gardenHarvest} onAdd={(type,path,name)=>{const n:GardenPlant={id:Math.max(0,...gardenPlants.map(p=>p.id))+1,path,name,type,stage:0,water:0,fertilizer:0,plantedAt:Date.now()};gardenSave([...gardenPlants,n]);}}/>}
+      {gardenNotice && <div style={{ position:"absolute",right:210,top:70,zIndex:20,padding:"10px 14px",borderRadius:12,background:"#fff1f2",color:"#be123c",fontSize:12,fontWeight:800,boxShadow:"0 8px 24px rgba(190,18,60,0.18)" }}>{gardenNotice}</div>}
+      {tab==="garden" && <GardenPanel plants={gardenPlants} selId={gardenSel} onSelect={setGardenSel} onWater={gardenWater} onFertilize={gardenFertilize} onHarvest={gardenHarvest} onAdd={addGardenPlant}/>}
       {(sel||selWall) && <div style={{ width:180,background:"rgba(255,255,255,0.92)",backdropFilter:"blur(16px)",borderLeft:"1px solid #f0e0e8",padding:14,fontSize:11,flexShrink:0,overflowY:"auto" }}>
         <div style={{ fontWeight:700,color:"#44403c",fontSize:14 }}>{sel?.name||"墙体"}</div>
         <div style={{ color:"#a8a29e",fontSize:10,marginBottom:8 }}>{sel?.cat||"隔墙"}</div>
