@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text as sql_text
 from app.database import get_db, get_db_context
 from app.models import QRCodeResponse, LoginStatusResponse, UserSession as UserSessionModel, LingxiAccount
 from app.services.bilibili import BilibiliService
@@ -77,23 +77,56 @@ def _verify_captcha(captcha_id: str, answer: str) -> None:
 
 
 async def _create_account_session(db: AsyncSession, account: LingxiAccount) -> tuple[str, dict]:
-    session_id = f"lx_{uuid.uuid4().hex}"
     owner_mid = account.owner_mid or -(10_000_000 + account.id)
+    session_id = f"lx_account_{account.id}"
     if account.owner_mid != owner_mid:
         account.owner_mid = owner_mid
 
     account.last_login_at = datetime.utcnow()
-    db_session = UserSessionModel(
-        session_id=session_id,
-        bili_mid=owner_mid,
-        bili_uname=account.username,
-        bili_face="",
-        sessdata="",
-        bili_jct="",
-        dedeuserid=str(owner_mid),
-        is_valid=True,
+
+    old_sessions_result = await db.execute(
+        select(UserSessionModel.session_id).where(
+            UserSessionModel.bili_mid == owner_mid,
+            UserSessionModel.session_id != session_id,
+        )
     )
-    db.add(db_session)
+    old_session_ids = [row[0] for row in old_sessions_result.all()]
+
+    result = await db.execute(
+        select(UserSessionModel).where(UserSessionModel.session_id == session_id)
+    )
+    db_session = result.scalars().first()
+    if db_session:
+        db_session.bili_mid = owner_mid
+        db_session.bili_uname = account.username
+        db_session.bili_face = ""
+        db_session.sessdata = ""
+        db_session.bili_jct = ""
+        db_session.dedeuserid = str(owner_mid)
+        db_session.is_valid = True
+        db_session.last_active_at = datetime.utcnow()
+    else:
+        db_session = UserSessionModel(
+            session_id=session_id,
+            bili_mid=owner_mid,
+            bili_uname=account.username,
+            bili_face="",
+            sessdata="",
+            bili_jct="",
+            dedeuserid=str(owner_mid),
+            is_valid=True,
+        )
+        db.add(db_session)
+
+    if old_session_ids:
+        await _migrate_session_scoped_data(db, old_session_ids, session_id)
+        await db.execute(
+            sql_text(
+                "UPDATE user_sessions SET is_valid = 0 WHERE bili_mid = :owner_mid AND session_id != :session_id"
+            ),
+            {"owner_mid": owner_mid, "session_id": session_id},
+        )
+
     await db.commit()
 
     user_info = {
@@ -108,6 +141,45 @@ async def _create_account_session(db: AsyncSession, account: LingxiAccount) -> t
         "is_lingxi_account": True,
     }
     return session_id, user_info
+
+
+async def _migrate_session_scoped_data(
+    db: AsyncSession,
+    old_session_ids: list[str],
+    stable_session_id: str,
+) -> None:
+    """把账号历史临时会话数据合并到稳定账号空间。"""
+    tables = [
+        "video_cache",
+        "segments",
+        "knowledge_nodes",
+        "knowledge_edges",
+        "node_segment_links",
+        "game_scores",
+        "srs_records",
+        "concepts",
+        "claims",
+        "concept_relations",
+        "cross_video_alignments",
+        "favorite_folders",
+        "user_collections",
+        "user_mastery",
+        "conversations",
+        "chat_messages",
+        "memory_nodes",
+        "memory_edges",
+    ]
+    for old_sid in old_session_ids:
+        for table_name in tables:
+            try:
+                await db.execute(
+                    sql_text(
+                        f"UPDATE {table_name} SET session_id = :new_sid WHERE session_id = :old_sid"
+                    ),
+                    {"new_sid": stable_session_id, "old_sid": old_sid},
+                )
+            except Exception as exc:
+                logger.debug(f"跳过会话数据迁移 {table_name}: {exc}")
 
 
 DEMO_WORKSPACE_VIDEOS = [

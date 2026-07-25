@@ -16,6 +16,7 @@ const Icon = ({ d, size = 20 }: { d: string; size?: number }) => (
 
 const highlights = [
   { title: "专属学习档案", desc: "手机号注册后拥有独立会话和知识数据空间。" },
+  { title: "历史持续保留", desc: "下次直接登录同一手机号，继续使用原来的功能空间。" },
   { title: "视频源可选接入", desc: "B 站授权放在工作台内，只负责同步收藏夹。" },
   { title: "Agent 持续服务", desc: "知识树、复习、问答和主动提醒都围绕账号沉淀。" },
 ];
