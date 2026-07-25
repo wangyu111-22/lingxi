@@ -403,15 +403,15 @@ function SkyWeather({ time, weather }: { time:TimeOfDay; weather:HomeWeather }) 
 }
 
 /* ===== 农场: 池塘+风车+动物 ===== */
-function Pond() {
+function Pond({ pos=[0,0.06,-5] as THREE.Vector3Tuple, radius=3 }: { pos?:THREE.Vector3Tuple; radius?:number }) {
   return (
-    <group position={[0,0.06,-5]}>
+    <group position={pos}>
       {/* 水面 */}
-      <mesh rotation={[-Math.PI/2,0,0]}><circleGeometry args={[3,48]}/><meshPhysicalMaterial color="#3b82f6" roughness={0.05} metalness={0.1} clearcoat={0.5} clearcoatRoughness={0.1} transparent opacity={0.9}/></mesh>
+      <mesh rotation={[-Math.PI/2,0,0]}><circleGeometry args={[radius,48]}/><meshPhysicalMaterial color="#3b82f6" roughness={0.05} metalness={0.1} clearcoat={0.5} clearcoatRoughness={0.1} transparent opacity={0.9}/></mesh>
       {/* 浅水区 */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[0,0.01,0]}><circleGeometry args={[2.6,48]}/><meshPhysicalMaterial color="#60a5fa" roughness={0.03} metalness={0.15} clearcoat={0.8} transparent opacity={0.6}/></mesh>
+      <mesh rotation={[-Math.PI/2,0,0]} position={[0,0.01,0]}><circleGeometry args={[radius*0.86,48]}/><meshPhysicalMaterial color="#60a5fa" roughness={0.03} metalness={0.15} clearcoat={0.8} transparent opacity={0.6}/></mesh>
       {/* 石头边框 */}
-      {Array.from({length:20},(_,i)=>{const a=i/20*Math.PI*2;return<mesh key={`ps${i}`} position={[Math.cos(a)*3,0.08,Math.sin(a)*3]} castShadow><sphereGeometry args={[0.15+Math.random()*0.2,8,6]}/><meshStandardMaterial color="#78716c" roughness={0.5}/></mesh>;})}
+      {Array.from({length:20},(_,i)=>{const a=i/20*Math.PI*2;return<mesh key={`ps${i}`} position={[Math.cos(a)*radius,0.08,Math.sin(a)*radius]} castShadow><sphereGeometry args={[0.15+((i*7)%5)*0.035,8,6]}/><meshStandardMaterial color="#78716c" roughness={0.5}/></mesh>;})}
       {/* 睡莲 */}
       {[[-1,0.02,-0.5],[0.6,0.02,0.2],[-0.3,0.02,-1],[-1.5,0.02,0.8],[1.2,0.02,-0.3]].map(([x,,z],i)=><group key={`lily${i}`} position={[x,0.08,z]}>
         <mesh rotation={[-0.1,0,i*0.7]}><circleGeometry args={[0.35,16]}/><meshStandardMaterial color={["#22c55e","#16a34a","#4ade80","#15803d","#22c55e"][i]} roughness={0.3}/></mesh>
@@ -499,16 +499,19 @@ function PetHouse({ pos, color="#ef4444", label="小窝" }: { pos:THREE.Vector3T
   </group>;
 }
 
-function DogModel({ pos, s=1, color="#a16207", resting=false }: { pos:THREE.Vector3Tuple; s?:number; color?:string; resting?:boolean }) {
-  return <Walker pos={pos} speed={1.6} resting={resting} restPos={[-5,0,-4]}>
+function DogModel({ pos, s=1, color="#a16207", resting=false, restPos=[-8,0,-7] as THREE.Vector3Tuple }: { pos:THREE.Vector3Tuple; s?:number; color?:string; resting?:boolean; restPos?:THREE.Vector3Tuple }) {
+  const ear = color === "#57534e" ? "#27272a" : "#78350f";
+  return <Walker pos={pos} speed={1.6} resting={resting} restPos={restPos}>
     <group scale={[s,s,s]}>
-      <mesh position={[0,0.35,0]} castShadow><boxGeometry args={[0.9,0.42,0.42]}/><meshStandardMaterial color={color} roughness={0.65}/></mesh>
-      <mesh position={[0.55,0.52,0.08]} castShadow><sphereGeometry args={[0.24,12,10]}/><meshStandardMaterial color={color} roughness={0.65}/></mesh>
-      <mesh position={[0.75,0.48,0.12]}><boxGeometry args={[0.16,0.1,0.16]}/><meshStandardMaterial color="#111827"/></mesh>
-      <mesh position={[0.48,0.75,0.2]} rotation={[0.3,0,0.2]}><coneGeometry args={[0.12,0.28,5]}/><meshStandardMaterial color="#78350f"/></mesh>
-      <mesh position={[0.48,0.75,-0.08]} rotation={[-0.3,0,0.2]}><coneGeometry args={[0.12,0.28,5]}/><meshStandardMaterial color="#78350f"/></mesh>
-      {[-0.28,0.25].map((x,i)=>[-0.16,0.16].map((z,j)=><mesh key={`${i}-${j}`} position={[x,0.12,z]}><cylinderGeometry args={[0.045,0.055,0.26,7]}/><meshStandardMaterial color={color}/></mesh>))}
-      <mesh position={[-0.55,0.48,0]} rotation={[0,0,0.7]}><cylinderGeometry args={[0.035,0.045,0.45,7]}/><meshStandardMaterial color={color}/></mesh>
+      <mesh position={[0,0.42,0]} rotation={[Math.PI/2,0,Math.PI/2]} scale={[1.15,0.78,0.72]} castShadow><capsuleGeometry args={[0.28,0.72,10,14]}/><meshStandardMaterial color={color} roughness={0.62}/></mesh>
+      <mesh position={[0.58,0.58,0]} scale={[1.05,0.92,0.9]} castShadow><sphereGeometry args={[0.28,16,12]}/><meshStandardMaterial color={color} roughness={0.62}/></mesh>
+      <mesh position={[0.78,0.5,0]} scale={[1,0.65,0.72]} castShadow><sphereGeometry args={[0.17,12,8]}/><meshStandardMaterial color="#f5e6c8" roughness={0.7}/></mesh>
+      <mesh position={[0.89,0.51,0]}><sphereGeometry args={[0.045,8,6]}/><meshStandardMaterial color="#111827" roughness={0.4}/></mesh>
+      {[-0.09,0.09].map((z,i)=><mesh key={`eye${i}`} position={[0.68,0.66,z]}><sphereGeometry args={[0.028,8,6]}/><meshBasicMaterial color="#111"/></mesh>)}
+      <mesh position={[0.48,0.82,0.18]} rotation={[0.55,0,0.35]}><coneGeometry args={[0.13,0.32,6]}/><meshStandardMaterial color={ear} roughness={0.7}/></mesh>
+      <mesh position={[0.48,0.82,-0.18]} rotation={[-0.55,0,0.35]}><coneGeometry args={[0.13,0.32,6]}/><meshStandardMaterial color={ear} roughness={0.7}/></mesh>
+      {[-0.3,0.28].map((x,i)=>[-0.18,0.18].map((z,j)=><mesh key={`${i}-${j}`} position={[x,0.18,z]}><capsuleGeometry args={[0.045,0.22,6,8]}/><meshStandardMaterial color={color} roughness={0.7}/></mesh>))}
+      <mesh position={[-0.63,0.55,0]} rotation={[0,0,0.95]}><capsuleGeometry args={[0.035,0.34,6,8]}/><meshStandardMaterial color={color} roughness={0.65}/></mesh>
     </group>
   </Walker>;
 }
@@ -525,53 +528,37 @@ function Walker({ pos, speed, resting=false, restPos, children }: { pos:THREE.Ve
   return <group ref={ref} position={resting && restPos ? restPos : pos}>{children}</group>;
 }
 
-function CowModel({ pos, s=1, resting=false }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean }) {
-  return <Walker pos={pos} speed={0.7} resting={resting} restPos={[-9,0,-3]}>
+function CowModel({ pos, s=1, resting=false, restPos=[-10,0,0] as THREE.Vector3Tuple }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean; restPos?:THREE.Vector3Tuple }) {
+  return <Walker pos={pos} speed={0.7} resting={resting} restPos={restPos}>
     <group scale={[s,s,s]}>
-      {/* 身体(水平躺) */}
-      <mesh position={[0,0.45,0]} rotation={[Math.PI/2,0,0]} castShadow><capsuleGeometry args={[0.35,0.7,8,8]}/><meshStandardMaterial color="#fafaf9" roughness={0.4}/></mesh>
-      {/* 黑白花纹 */}
-      <mesh position={[-0.15,0.45,0.15]}><sphereGeometry args={[0.3,8,6]}/><meshStandardMaterial color="#292524" roughness={0.4}/></mesh>
-      <mesh position={[0.2,0.45,-0.1]}><sphereGeometry args={[0.24,8,6]}/><meshStandardMaterial color="#292524" roughness={0.4}/></mesh>
-      {/* 头 */}
-      <mesh position={[0,0.55,0.5]} castShadow><sphereGeometry args={[0.18,12,12]}/><meshStandardMaterial color="#fafaf9" roughness={0.3}/></mesh>
-      {/* 嘴 */}
-      <mesh position={[0,0.48,0.7]}><boxGeometry args={[0.14,0.09,0.08]}/><meshStandardMaterial color="#fbcfe8" roughness={0.3}/></mesh>
-      {/* 角 */}
-      <mesh position={[-0.07,0.7,0.48]} rotation={[-0.2,0,0]}><coneGeometry args={[0.04,0.15,8]}/><meshStandardMaterial color="#d6d3d1" roughness={0.3}/></mesh>
-      <mesh position={[0.07,0.7,0.48]} rotation={[-0.2,0,0]}><coneGeometry args={[0.04,0.15,8]}/><meshStandardMaterial color="#d6d3d1" roughness={0.3}/></mesh>
-      {/* 眼睛 */}
-      <mesh position={[-0.06,0.6,0.65]}><sphereGeometry args={[0.03,8]}/><meshBasicMaterial color="#111"/></mesh>
-      <mesh position={[0.06,0.6,0.65]}><sphereGeometry args={[0.03,8]}/><meshBasicMaterial color="#111"/></mesh>
-      {/* 腿 */}
-      {[-1,1].map((d,i)=>[-0.15,0.25].map((z,j)=><mesh key={`${i}${j}`} position={[d*0.2,0.15,0.15+z]} castShadow><cylinderGeometry args={[0.06,0.06,0.3,8]}/><meshStandardMaterial color="#fafaf9" roughness={0.3}/></mesh>))}
-      {/* 尾巴 */}
-      <mesh position={[0,0.45,-0.5]} rotation={[0.8,0,0]}><cylinderGeometry args={[0.02,0.03,0.25,8]}/><meshStandardMaterial color="#fafaf9"/></mesh>
-      <mesh position={[0,0.35,-0.7]}><sphereGeometry args={[0.05,8]}/><meshStandardMaterial color="#44403c"/></mesh>
+      <mesh position={[0,0.55,0]} rotation={[Math.PI/2,0,Math.PI/2]} scale={[1.55,0.9,0.86]} castShadow><capsuleGeometry args={[0.36,0.92,10,14]}/><meshStandardMaterial color="#f8fafc" roughness={0.62}/></mesh>
+      {[[-0.25,0.78,0.28,0.26],[0.22,0.52,-0.32,0.22],[0.42,0.72,0.1,0.18]].map(([x,y,z,r],i)=><mesh key={i} position={[x,y,z]} scale={[1.25,0.72,0.92]}><sphereGeometry args={[r,12,8]}/><meshStandardMaterial color="#27272a" roughness={0.7}/></mesh>)}
+      <mesh position={[0.78,0.68,0]} scale={[1.05,0.92,0.9]} castShadow><sphereGeometry args={[0.28,14,10]}/><meshStandardMaterial color="#f8fafc" roughness={0.62}/></mesh>
+      <mesh position={[1.0,0.58,0]} scale={[1.1,0.68,0.82]}><sphereGeometry args={[0.18,12,8]}/><meshStandardMaterial color="#f9a8d4" roughness={0.7}/></mesh>
+      {[-0.09,0.09].map((z,i)=><mesh key={`eye${i}`} position={[0.92,0.75,z]}><sphereGeometry args={[0.03,8]}/><meshBasicMaterial color="#111"/></mesh>)}
+      {[-0.14,0.14].map((z,i)=><mesh key={`horn${i}`} position={[0.72,0.98,z]} rotation={[0,0,-0.45]}><coneGeometry args={[0.045,0.22,8]}/><meshStandardMaterial color="#fef3c7" roughness={0.5}/></mesh>)}
+      {[-0.42,0.36].map((x,i)=>[-0.24,0.24].map((z,j)=><mesh key={`${i}${j}`} position={[x,0.22,z]}><capsuleGeometry args={[0.055,0.34,7,8]}/><meshStandardMaterial color="#f8fafc" roughness={0.68}/></mesh>))}
+      <mesh position={[-0.86,0.62,0]} rotation={[0,0,1.15]}><capsuleGeometry args={[0.025,0.38,6,8]}/><meshStandardMaterial color="#27272a"/></mesh>
     </group>
   </Walker>;
 }
 
-function ChickenModel({ pos, s=1, resting=false }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean }) {
-  return <Walker pos={pos} speed={2.5} resting={resting} restPos={[-7.5,0,-3.2]}>
+function ChickenModel({ pos, s=1, resting=false, restPos=[-8.8,0,1.1] as THREE.Vector3Tuple }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean; restPos?:THREE.Vector3Tuple }) {
+  return <Walker pos={pos} speed={2.5} resting={resting} restPos={restPos}>
     <group scale={[s,s,s]}>
-      <mesh position={[0,0.15,0]} rotation={[Math.PI/2,0,0]} castShadow><capsuleGeometry args={[0.13,0.22,8,8]}/><meshStandardMaterial color="#fef3c7" roughness={0.3}/></mesh>
-      <mesh position={[0,0.28,0.22]} castShadow><sphereGeometry args={[0.09,10,10]}/><meshStandardMaterial color="#fef3c7" roughness={0.3}/></mesh>
-      <mesh position={[0,0.37,0.22]}><coneGeometry args={[0.05,0.08,6]}/><meshStandardMaterial color="#ef4444" roughness={0.2}/></mesh>
-      <mesh position={[-0.03,0.35,0.22]}><coneGeometry args={[0.03,0.05,6]}/><meshStandardMaterial color="#ef4444"/></mesh>
-      <mesh position={[0.03,0.35,0.22]}><coneGeometry args={[0.03,0.05,6]}/><meshStandardMaterial color="#ef4444"/></mesh>
-      <mesh position={[0,0.27,0.32]}><coneGeometry args={[0.03,0.07,4]}/><meshStandardMaterial color="#f97316"/></mesh>
-      <mesh position={[-0.03,0.3,0.3]}><sphereGeometry args={[0.02,6]}/><meshBasicMaterial color="#111"/></mesh>
-      <mesh position={[0.03,0.3,0.3]}><sphereGeometry args={[0.02,6]}/><meshBasicMaterial color="#111"/></mesh>
-      <mesh position={[-0.05,0.05,0.05]} castShadow><cylinderGeometry args={[0.012,0.012,0.12,6]}/><meshStandardMaterial color="#f97316"/></mesh>
-      <mesh position={[0.05,0.05,0.05]} castShadow><cylinderGeometry args={[0.012,0.012,0.12,6]}/><meshStandardMaterial color="#f97316"/></mesh>
-      <mesh position={[0,0.15,-0.2]} rotation={[-0.3,0,0]}><coneGeometry args={[0.06,0.12,6]}/><meshStandardMaterial color="#fef9c3"/></mesh>
+      <mesh position={[0,0.24,0]} scale={[1,1.12,0.9]} castShadow><sphereGeometry args={[0.18,14,10]}/><meshStandardMaterial color="#fef3c7" roughness={0.58}/></mesh>
+      <mesh position={[0.16,0.42,0]} scale={[0.9,1,0.9]} castShadow><sphereGeometry args={[0.13,12,8]}/><meshStandardMaterial color="#fff7ed" roughness={0.58}/></mesh>
+      <mesh position={[0.27,0.42,0]} rotation={[0,0,Math.PI/2]}><coneGeometry args={[0.045,0.12,5]}/><meshStandardMaterial color="#f97316"/></mesh>
+      <mesh position={[0.14,0.56,0]}><coneGeometry args={[0.055,0.11,6]}/><meshStandardMaterial color="#ef4444"/></mesh>
+      {[-0.045,0.045].map((z,i)=><mesh key={`eye${i}`} position={[0.25,0.46,z]}><sphereGeometry args={[0.018,6]}/><meshBasicMaterial color="#111"/></mesh>)}
+      <mesh position={[-0.15,0.27,0]} rotation={[0,0,-0.45]}><coneGeometry args={[0.08,0.18,6]}/><meshStandardMaterial color="#fde68a"/></mesh>
+      {[-0.055,0.055].map((z,i)=><mesh key={i} position={[0,0.07,z]}><capsuleGeometry args={[0.012,0.11,4,6]}/><meshStandardMaterial color="#f97316"/></mesh>)}
     </group>
   </Walker>;
 }
 
-function DuckModel({ pos, s=1, resting=false }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean }) {
-  return <Walker pos={pos} speed={2} resting={resting} restPos={[-8.5,0,-4.2]}>
+function DuckModel({ pos, s=1, resting=false, restPos=[-7.8,0,0.5] as THREE.Vector3Tuple }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean; restPos?:THREE.Vector3Tuple }) {
+  return <Walker pos={pos} speed={2} resting={resting} restPos={restPos}>
     <group scale={[s,s,s]}>
       <mesh position={[0,0.12,0]} rotation={[Math.PI/2,0,0]} castShadow><capsuleGeometry args={[0.11,0.2,8,8]}/><meshStandardMaterial color="#fef9c3" roughness={0.3}/></mesh>
       <mesh position={[0,0.12,0.2]} castShadow><sphereGeometry args={[0.09,10,10]}/><meshStandardMaterial color="#fef9c3" roughness={0.3}/></mesh>
@@ -584,8 +571,8 @@ function DuckModel({ pos, s=1, resting=false }: { pos:THREE.Vector3Tuple; s?:num
   </Walker>;
 }
 
-function PigModel({ pos, s=1, resting=false }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean }) {
-  return <Walker pos={pos} speed={1} resting={resting} restPos={[-6.5,0,-4]}>
+function PigModel({ pos, s=1, resting=false, restPos=[-6.7,0,0.4] as THREE.Vector3Tuple }: { pos:THREE.Vector3Tuple; s?:number; resting?:boolean; restPos?:THREE.Vector3Tuple }) {
+  return <Walker pos={pos} speed={1} resting={resting} restPos={restPos}>
     <group scale={[s,s,s]}>
       <mesh position={[0,0.3,0]} rotation={[Math.PI/2,0,0]} castShadow><capsuleGeometry args={[0.26,0.5,8,8]}/><meshStandardMaterial color="#fbcfe8" roughness={0.4}/></mesh>
       <mesh position={[0,0.4,0.35]} castShadow><sphereGeometry args={[0.16,10,10]}/><meshStandardMaterial color="#fbcfe8" roughness={0.3}/></mesh>
@@ -605,10 +592,10 @@ function FarmScene({ resting=false }: { resting?:boolean }) {
     <group>
       <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.03,0]} receiveShadow><planeGeometry args={[28,28]}/><meshStandardMaterial color="#4ade80" roughness={0.85}/></mesh>
       <gridHelper args={[28,28,"#86efac","#bbf7d0"]} position={[0,0,0]}/>
-      <Barn/>
+      <Barn pos={[-9,0,1]}/>
       <GrassTufts/>
 
-      <Pond/>
+      <Pond pos={[4,0.06,-6]} radius={2.7}/>
       <Windmill/>
 
       <HayBale pos={[3,0.4,-3]}/>
@@ -630,22 +617,22 @@ function FarmScene({ resting=false }: { resting?:boolean }) {
       <Prop key="g4" item={{id:974,path:N("plant_bushLarge"),pos:[5,0,10],s:3,name:"灌木",cat:"灌木"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
 
       {/* 🐄 奶牛×2 */}
-      <CowModel pos={[-5,0,-2]} s={1.2} resting={resting}/>
-      <CowModel pos={[-7,0,-0.5]} s={1} resting={resting}/>
+      <CowModel pos={[-3.5,0,-1.5]} s={1.15} resting={resting} restPos={[-10,0,2]}/>
+      <CowModel pos={[-5.5,0,-0.3]} s={1} resting={resting} restPos={[-8.7,0,2.2]}/>
 
       {/* 🐔 鸡×3 */}
-      <ChickenModel pos={[5,0,3]} s={1.2} resting={resting}/>
-      <ChickenModel pos={[6,0,4]} s={1} resting={resting}/>
-      <ChickenModel pos={[4,0,3.5]} s={1.1} resting={resting}/>
+      <ChickenModel pos={[5,0,3]} s={1.2} resting={resting} restPos={[-7.2,0,1.4]}/>
+      <ChickenModel pos={[6,0,4]} s={1} resting={resting} restPos={[-7.7,0,1.8]}/>
+      <ChickenModel pos={[4,0,3.5]} s={1.1} resting={resting} restPos={[-8.2,0,1.2]}/>
 
       {/* 🦆 鸭子×3 */}
-      <DuckModel pos={[2,0,-2]} s={1.2} resting={resting}/>
-      <DuckModel pos={[3.5,0,-1.5]} s={1} resting={resting}/>
-      <DuckModel pos={[2.5,0,-1]} s={1.1} resting={resting}/>
+      <DuckModel pos={[1.5,0,-1.5]} s={1.2} resting={resting} restPos={[-6.8,0,0.4]}/>
+      <DuckModel pos={[3.5,0,-1.4]} s={1} resting={resting} restPos={[-6.2,0,0.9]}/>
+      <DuckModel pos={[2.4,0,-0.4]} s={1.1} resting={resting} restPos={[-6.9,0,1.2]}/>
 
       {/* 🐷 猪×2 */}
-      <PigModel pos={[7,0,0]} s={1.2} resting={resting}/>
-      <PigModel pos={[8.5,0,1]} s={1} resting={resting}/>
+      <PigModel pos={[7,0,0]} s={1.2} resting={resting} restPos={[-9.6,0,0.3]}/>
+      <PigModel pos={[8.5,0,1]} s={1} resting={resting} restPos={[-8.8,0,0.4]}/>
     </group>
   );
 }
@@ -653,19 +640,19 @@ function PetScene({ resting=false }: { resting?:boolean }) {
   return <group>
     <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.025,0]} receiveShadow><planeGeometry args={[28,28]}/><meshStandardMaterial color="#86efac" roughness={0.9}/></mesh>
     <GrassTufts/>
-    <Pond/>
-    <PetHouse pos={[-5,0,-4]} color="#ef4444" label="小狗窝"/>
-    <PetHouse pos={[1,0,-5]} color="#8b5cf6" label="休息屋"/>
-    <PetHouse pos={[6,0,-3]} color="#0ea5e9" label="玩具屋"/>
+    <Pond pos={[7.5,0.06,5.5]} radius={2.4}/>
+    <PetHouse pos={[-9,0,-7]} color="#ef4444" label="小狗窝"/>
+    <PetHouse pos={[-5.8,0,-7.5]} color="#8b5cf6" label="休息屋"/>
+    <PetHouse pos={[3.8,0,-7]} color="#0ea5e9" label="玩具屋"/>
     <SimpleTree pos={[-11,0,-8]} s={1.3}/><SimpleTree pos={[10,0,-8]} s={1.15}/><SimpleTree pos={[9,0,8]} s={1.4}/><SimpleTree pos={[-9,0,8]} s={1.2}/>
     <Prop key="pet-fence-1" item={{id:503,path:N("fence_simpleLow"),pos:[-2,0,-8],rot:[0,Math.PI/2,0],s:3,name:"围栏",cat:"围栏"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
     <Prop key="pet-fence-2" item={{id:504,path:N("fence_simpleLow"),pos:[2,0,-8],rot:[0,Math.PI/2,0],s:3,name:"围栏",cat:"围栏"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
     <Prop key="pet-rug" item={{id:510,path:F("rugSquare"),pos:[0,0.01,2],s:4,name:"游戏毯",cat:"装饰"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
-    <DogModel pos={[-2,0,2]} s={1.3} color="#a16207" resting={resting}/>
-    <DogModel pos={[2,0,3]} s={1.05} color="#facc15" resting={resting}/>
-    <DogModel pos={[5,0,1]} s={1.15} color="#57534e" resting={resting}/>
-    <CowModel pos={[-6,0,3]} s={0.75} resting={resting}/>
-    <DuckModel pos={[1,0,-1]} s={1.2} resting={resting}/>
+    <DogModel pos={[-2,0,2]} s={1.25} color="#a16207" resting={resting} restPos={[-9,0,-7]}/>
+    <DogModel pos={[1.8,0,3]} s={1.05} color="#facc15" resting={resting} restPos={[-5.8,0,-7.5]}/>
+    <DogModel pos={[4.8,0,1]} s={1.12} color="#57534e" resting={resting} restPos={[3.8,0,-7]}/>
+    <CowModel pos={[-6,0,3]} s={0.72} resting={resting} restPos={[-5.8,0,-7.5]}/>
+    <DuckModel pos={[1,0,-1]} s={1.1} resting={resting} restPos={[3.8,0,-7]}/>
   </group>;
 }
 type SceneTab = "home"|"garden"|"farm"|"pet";
