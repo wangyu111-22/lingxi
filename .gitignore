@@ -4,6 +4,9 @@ node_modules/
 __pycache__/
 *.pyc
 .venv/
+.env
+.env.*
+!.env.example
 logs/
 data/*.db
 data/chroma_db/
