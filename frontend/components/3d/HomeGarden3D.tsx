@@ -34,7 +34,10 @@ const Prop = ({ item, sel, onClick, onTransform }: { item:Item; sel:boolean; onC
     <group ref={ref} position={item.pos} rotation={item.rot||[0,0,0]} scale={[(item.s||1),(item.s||1),(item.s||1)]}
       onClick={e=>{e.stopPropagation();onClick();}}>
       <primitive object={clone}/>
-      {sel && <Html position={[0,2.5,0]} center pointerEvents="none"><span style={{background:item.color||"#6366f1",color:"#fff",padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{item.name}</span></Html>}
+      {sel && <mesh rotation={[-Math.PI/2,0,0]} position={[0,0.04,0]}>
+        <ringGeometry args={[0.55,0.72,40]}/>
+        <meshBasicMaterial color={item.color||"#6366f1"} transparent opacity={0.72} side={THREE.DoubleSide}/>
+      </mesh>}
     </group>
   );
 };
@@ -76,7 +79,6 @@ function WallSeg({ wall, sel, onClick, time }: { wall:WallDef; sel?:boolean; onC
         <boxGeometry args={[w,WALL_H,d]}/>
         <meshStandardMaterial roughness={0.85} color={wall.color||(sel?"#fbcfe8":WALL_COLOR_DAY)} transparent opacity={sel?0.72:0.88}/>
       </mesh>
-      {sel && <Html position={[cx,WALL_H+0.5,cz]} center pointerEvents="none"><span style={{background:"#ec4899",color:"#fff",padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:600}}>墙体</span></Html>}
     </group>
   );
 }
@@ -486,16 +488,14 @@ function Barn({ pos=[-8,0,-5] as THREE.Vector3Tuple }: { pos?:THREE.Vector3Tuple
     <mesh position={[0,0.95,1.96]}><boxGeometry args={[1.5,1.9,0.08]}/><meshStandardMaterial color="#451a03" roughness={0.75}/></mesh>
     <mesh position={[0,1.05,2.02]}><boxGeometry args={[0.08,1.7,0.1]}/><meshStandardMaterial color="#fef3c7"/></mesh>
     <mesh position={[0,1.05,2.04]} rotation={[0,0,Math.PI/4]}><boxGeometry args={[0.08,1.9,0.1]}/><meshStandardMaterial color="#fef3c7"/></mesh>
-    <Html position={[0,3.8,0]} center style={{pointerEvents:"none"}}><span style={{background:"#b91c1c",color:"#fff",padding:"4px 10px",borderRadius:10,fontSize:12,fontWeight:800}}>休息仓</span></Html>
   </group>;
 }
 
-function PetHouse({ pos, color="#ef4444", label="小窝" }: { pos:THREE.Vector3Tuple; color?:string; label?:string }) {
+function PetHouse({ pos, color="#ef4444" }: { pos:THREE.Vector3Tuple; color?:string }) {
   return <group position={pos}>
     <mesh position={[0,0.55,0]} castShadow receiveShadow><boxGeometry args={[2.1,1.1,1.8]}/><meshStandardMaterial color="#fef3c7" roughness={0.75}/></mesh>
     <mesh position={[0,1.25,0]} rotation={[0,0,Math.PI/4]} castShadow><boxGeometry args={[1.65,1.65,2]}/><meshStandardMaterial color={color} roughness={0.7}/></mesh>
     <mesh position={[0,0.45,0.92]}><boxGeometry args={[0.65,0.75,0.08]}/><meshStandardMaterial color="#451a03" roughness={0.8}/></mesh>
-    <Html position={[0,1.9,0]} center style={{pointerEvents:"none"}}><span style={{background:color,color:"#fff",padding:"3px 8px",borderRadius:8,fontSize:10,fontWeight:800}}>{label}</span></Html>
   </group>;
 }
 
@@ -641,9 +641,9 @@ function PetScene({ resting=false }: { resting?:boolean }) {
     <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.025,0]} receiveShadow><planeGeometry args={[28,28]}/><meshStandardMaterial color="#86efac" roughness={0.9}/></mesh>
     <GrassTufts/>
     <Pond pos={[7.5,0.06,5.5]} radius={2.4}/>
-    <PetHouse pos={[-9,0,-7]} color="#ef4444" label="小狗窝"/>
-    <PetHouse pos={[-5.8,0,-7.5]} color="#8b5cf6" label="休息屋"/>
-    <PetHouse pos={[3.8,0,-7]} color="#0ea5e9" label="玩具屋"/>
+    <PetHouse pos={[-9,0,-7]} color="#ef4444"/>
+    <PetHouse pos={[-5.8,0,-7.5]} color="#8b5cf6"/>
+    <PetHouse pos={[3.8,0,-7]} color="#0ea5e9"/>
     <SimpleTree pos={[-11,0,-8]} s={1.3}/><SimpleTree pos={[10,0,-8]} s={1.15}/><SimpleTree pos={[9,0,8]} s={1.4}/><SimpleTree pos={[-9,0,8]} s={1.2}/>
     <Prop key="pet-fence-1" item={{id:503,path:N("fence_simpleLow"),pos:[-2,0,-8],rot:[0,Math.PI/2,0],s:3,name:"围栏",cat:"围栏"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
     <Prop key="pet-fence-2" item={{id:504,path:N("fence_simpleLow"),pos:[2,0,-8],rot:[0,Math.PI/2,0],s:3,name:"围栏",cat:"围栏"}} sel={false} onClick={()=>{}} onTransform={()=>{}}/>
