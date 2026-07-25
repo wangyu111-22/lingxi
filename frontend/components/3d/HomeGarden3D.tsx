@@ -12,9 +12,15 @@ const WALL_COLOR_DAY = "#fce4ec"; const WALL_COLOR_NIGHT = "#3d1a2e";
 
 /* ===== Types ===== */
 type TimeOfDay = "day"|"night";
+type LightMode = "auto"|"manual";
 type Item = { id:number; path:string; pos:THREE.Vector3Tuple; rot?:THREE.Vector3Tuple; s?:number; name:string; cat:string; color?:string };
 type WallDef = { id:number; x1:number;z1:number;x2:number;z2:number; color?:string };
 const COLORS = ["#fce4ec","#fbcfe8","#f9a8d4","#fda4af","#fed7aa","#fde68a","#d9f99d","#a7f3d0","#bae6fd","#c7d2fe","#e9d5ff","#f5f5f4","#e7e5e4","#d6d3d1"];
+
+const getAutoTimeOfDay = (): TimeOfDay => {
+  const hour = new Date().getHours();
+  return hour >= 8 && hour < 19 ? "day" : "night";
+};
 
 /* ===== Props: 可拖动物件 ===== */
 const Prop = ({ item, sel, onClick, onTransform }: { item:Item; sel:boolean; onClick:()=>void; onTransform:(pos:THREE.Vector3Tuple,rot:THREE.Vector3Tuple)=>void }) => {
@@ -487,7 +493,16 @@ type SceneTab = "home"|"garden"|"farm"|"pet";
 
 export default function HomeGarden3D() {
   const [tab, setTab] = useState<SceneTab>("home");
-  const [time, setTime] = useState<TimeOfDay>("day");
+  const [time, setTime] = useState<TimeOfDay>(() => {
+    if (typeof window === "undefined") return "day";
+    const savedMode = localStorage.getItem("lingxi-home-light-mode") as LightMode | null;
+    const savedTime = localStorage.getItem("lingxi-home-time") as TimeOfDay | null;
+    return savedMode === "manual" && (savedTime === "day" || savedTime === "night") ? savedTime : getAutoTimeOfDay();
+  });
+  const [lightMode, setLightMode] = useState<LightMode>(() => {
+    if (typeof window === "undefined") return "auto";
+    return localStorage.getItem("lingxi-home-light-mode") === "manual" ? "manual" : "auto";
+  });
   const [items, setItems] = useState<Item[]>(HOME_ITEMS);
   const [walls, setWalls] = useState<WallDef[]>(DEFAULT_WALLS);
   const [sid, setSid] = useState<number|null>(null);
@@ -519,6 +534,30 @@ export default function HomeGarden3D() {
   const gardenSelPlant = gardenPlants.find(p=>p.id===gardenSel);
 
   const sel=items.find(i=>i.id===sid),selWall=walls.find(w=>w.id===wid);
+
+  useEffect(() => {
+    if (lightMode !== "auto") return;
+    const sync = () => setTime(getAutoTimeOfDay());
+    sync();
+    const timer = window.setInterval(sync, 60_000);
+    return () => window.clearInterval(timer);
+  }, [lightMode]);
+
+  const toggleLightMode = () => {
+    const next = time === "day" ? "night" : "day";
+    setTime(next);
+    setLightMode("manual");
+    localStorage.setItem("lingxi-home-light-mode", "manual");
+    localStorage.setItem("lingxi-home-time", next);
+  };
+
+  const enableAutoLight = () => {
+    const next = getAutoTimeOfDay();
+    setTime(next);
+    setLightMode("auto");
+    localStorage.setItem("lingxi-home-light-mode", "auto");
+    localStorage.removeItem("lingxi-home-time");
+  };
 
   return (
     <div style={{ position:"relative",width:"100%",height:"calc(100vh - 64px)",minHeight:500,borderRadius:24,overflow:"hidden",background:time==="night"?"#0f0a1a":"#f5f0eb",display:"flex" }}>
@@ -559,7 +598,13 @@ export default function HomeGarden3D() {
         </Canvas>
 
         <button onClick={()=>setCatOpen(!catOpen)} style={{ position:"absolute",top:12,left:12,width:36,height:36,borderRadius:10,border:"1px solid #fce4ec",background:"rgba(255,255,255,0.85)",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(8px)" }}>{catOpen?"◀":"📦"}</button>
-        <button onClick={()=>setTime(t=>t==="day"?"night":"day")} style={{ position:"absolute",top:12,right:12,width:44,height:44,borderRadius:14,border:"1px solid rgba(255,255,255,0.2)",background:time==="night"?"rgba(30,20,60,0.85)":"rgba(255,255,255,0.85)",backdropFilter:"blur(8px)",cursor:"pointer",fontSize:22,display:"flex",alignItems:"center",justifyContent:"center" }}>{time==="night"?"🌙":"☀️"}</button>
+        <div style={{ position:"absolute",top:12,right:12,display:"flex",gap:8,alignItems:"center" }}>
+          <button onClick={toggleLightMode} title={lightMode==="auto"?"自动跟随时间，点击后手动切换":"手动模式，点击切换亮暗"} style={{ height:44,minWidth:94,padding:"0 12px",borderRadius:14,border:"1px solid rgba(255,255,255,0.2)",background:time==="night"?"rgba(30,20,60,0.85)":"rgba(255,255,255,0.85)",backdropFilter:"blur(8px)",cursor:"pointer",fontSize:13,fontWeight:700,color:time==="night"?"#f8fafc":"#475569",display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}>
+            <span style={{ fontSize:20 }}>{time==="night"?"🌙":"☀️"}</span>
+            <span>{lightMode==="auto"?"自动":"手动"}</span>
+          </button>
+          {lightMode==="manual" && <button onClick={enableAutoLight} title="恢复按时间自动切换" style={{ height:36,padding:"0 10px",borderRadius:12,border:"1px solid rgba(255,255,255,0.25)",background:"rgba(255,255,255,0.82)",backdropFilter:"blur(8px)",cursor:"pointer",fontSize:12,fontWeight:700,color:"#059669" }}>自动</button>}
+        </div>
         <button onClick={()=>{setItems(HOME_ITEMS);setWalls(DEFAULT_WALLS);setSid(null);setWid(null);}} style={{ position:"absolute",top:12,left:catOpen?234:52,height:36,padding:"0 14px",borderRadius:10,border:"1px solid #fce4ec",background:"rgba(255,255,255,0.85)",cursor:"pointer",fontSize:12,fontWeight:600,color:"#be185d",backdropFilter:"blur(8px)" }}>🔄 重置</button>
 
         {/* 场景切换标签 */}
