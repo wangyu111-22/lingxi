@@ -48,20 +48,6 @@ const featureCards = [
     color: "#f59e0b",
     icon: "M12 2l2.5 6.8 7.2.3-5.6 4.5 1.9 7-6-3.9-6 3.9 1.9-7-5.6-4.5 7.2-.3L12 2Z",
   },
-  {
-    href: "/work",
-    title: "工作区",
-    desc: "PPT、PDF、图表、绘图和学习材料处理。",
-    color: "#2563eb",
-    icon: "M4 7h16v13H4V7Zm4 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M4 12h16",
-  },
-  {
-    href: "/harmony",
-    title: "鸿蒙全景区",
-    desc: "展示鸿蒙全场景联动、Agent 技术亮点和多设备体验。",
-    color: "#8b5cf6",
-    icon: "M6 4h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 16h8M9 8h6M9 12h6",
-  },
 ];
 
 export default function DashboardPage() {
@@ -158,7 +144,10 @@ export default function DashboardPage() {
           overflow-x: hidden;
           padding: 24px;
           color: #0f172a;
-          background: transparent;
+          background:
+            linear-gradient(135deg, rgba(248,250,252,.96), rgba(240,253,250,.88) 48%, rgba(255,247,237,.9)),
+            radial-gradient(circle at 12% 8%, rgba(5,150,105,.16), transparent 34%),
+            radial-gradient(circle at 86% 26%, rgba(6,182,212,.12), transparent 30%);
         }
         .dashboard-page > * { position: relative; z-index: 1; }
         .dashboard-header {
@@ -179,7 +168,7 @@ export default function DashboardPage() {
         .brand-mark {
           width: 42px;
           height: 42px;
-          border-radius: 14px;
+          border-radius: 12px;
           display: grid;
           place-items: center;
           color: #fff;
@@ -209,11 +198,11 @@ export default function DashboardPage() {
           align-items: stretch;
         }
         .dashboard-hero > div:first-child, .stats-panel {
-          border-radius: 24px;
-          background: rgba(255,255,255,.70);
-          border: 1px solid rgba(255,255,255,.92);
-          box-shadow: 0 24px 70px rgba(15,23,42,.08);
-          backdrop-filter: blur(18px);
+          border-radius: 18px;
+          background: rgba(255,255,255,.78);
+          border: 1px solid rgba(255,255,255,.94);
+          box-shadow: 0 20px 54px rgba(15,23,42,.09);
+          backdrop-filter: blur(20px);
         }
         .dashboard-hero > div:first-child { padding: 34px; }
         .dashboard-kicker {
@@ -259,39 +248,45 @@ export default function DashboardPage() {
           margin: 0 auto;
         }
         .feature-section { margin-top: 22px; padding-bottom: 84px; }
-        .feature-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+        .feature-grid {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 14px;
+          align-items: stretch;
+        }
         .primary-card {
-          min-height: 206px;
-          border-radius: 22px;
-          padding: 24px;
+          min-height: 224px;
+          border-radius: 18px;
+          padding: 22px;
           background:
-            linear-gradient(145deg, rgba(255,255,255,.86), rgba(255,255,255,.62)),
-            radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--feature-color) 12%, transparent), transparent 44%);
-          border: 1px solid rgba(255,255,255,.94);
-          box-shadow: 0 18px 48px rgba(15,23,42,.07);
-          backdrop-filter: blur(18px);
+            linear-gradient(145deg, rgba(255,255,255,.92), rgba(255,255,255,.68)),
+            linear-gradient(180deg, color-mix(in srgb, var(--feature-color) 10%, transparent), transparent 58%);
+          border: 1px solid rgba(255,255,255,.96);
+          box-shadow: 0 16px 42px rgba(15,23,42,.075);
+          backdrop-filter: blur(20px);
           color: inherit;
           text-decoration: none;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          transition: transform .2s ease, box-shadow .2s ease;
+          transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
         }
         .primary-card:hover {
           transform: translateY(-3px);
-          box-shadow: 0 24px 60px rgba(15,23,42,.11);
+          border-color: color-mix(in srgb, var(--feature-color) 28%, white);
+          box-shadow: 0 24px 60px rgba(15,23,42,.12);
         }
         .primary-icon {
           width: 48px;
           height: 48px;
-          border-radius: 16px;
+          border-radius: 14px;
           display: grid;
           place-items: center;
           color: #fff;
           background: var(--feature-color);
           box-shadow: 0 12px 28px color-mix(in srgb, var(--feature-color) 26%, transparent);
         }
-        .primary-card h2 { margin-top: 22px; font-size: 22px; }
+        .primary-card h2 { margin-top: 22px; font-size: 21px; }
         .primary-card p { margin-top: 8px; color: #64748b; font-size: 14px; line-height: 1.75; }
         .card-arrow {
           margin-top: 18px;
@@ -305,6 +300,9 @@ export default function DashboardPage() {
         @media (max-width: 980px) {
           .dashboard-hero { grid-template-columns: 1fr; }
           .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (min-width: 981px) and (max-width: 1180px) {
+          .feature-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
         @media (max-width: 560px) {
           .dashboard-page { padding: 16px; }

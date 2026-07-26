@@ -7,9 +7,7 @@ const tabs = [
   { href: "/weather", label: "天气", icon: "weather", color: "#06b6d4" },
   { href: "/workspace", label: "学习", icon: "learn", color: "#059669" },
   { href: "/emotion", label: "树洞", icon: "heart", color: "#ec4899" },
-  { href: "/work", label: "工作", icon: "work", color: "#2563eb" },
   { href: "/dashboard", label: "首页", icon: "home", color: "#059669", primary: true },
-  { href: "/harmony", label: "鸿蒙", icon: "harmony", color: "#dc2626" },
   { href: "/home-garden", label: "小家", icon: "garden", color: "#84cc16" },
   { href: "/beauty", label: "美美", icon: "star", color: "#f59e0b" },
 ];
@@ -76,18 +74,21 @@ export default function BottomTabBar() {
       className="bottom-tab-bar"
       style={{
         position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
+        bottom: 12,
+        left: "50%",
+        transform: "translateX(-50%)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        gap: 8,
-        padding: "8px 10px max(8px, env(safe-area-inset-bottom))",
-        background: "var(--bg-elevated)",
-        borderTop: "1px solid var(--border)",
+        gap: 6,
+        width: "min(calc(100vw - 24px), 520px)",
+        padding: "7px",
+        background: "color-mix(in srgb, var(--bg-elevated) 88%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--border) 72%, transparent)",
+        borderRadius: 20,
         zIndex: 9998,
-        backdropFilter: "blur(16px)",
+        backdropFilter: "blur(18px) saturate(1.25)",
+        boxShadow: "0 18px 48px rgba(15,23,42,.14), inset 0 1px 0 rgba(255,255,255,.38)",
       }}
     >
       {tabs.map((tab) => {
@@ -101,43 +102,44 @@ export default function BottomTabBar() {
               flexDirection: "column",
               alignItems: "center",
               gap: 2,
-              padding: tab.primary ? "8px 12px" : "6px 8px",
-              width: tab.primary ? 62 : 54,
-              minWidth: tab.primary ? 62 : 54,
-              borderRadius: tab.primary ? 18 : 12,
+              justifyContent: "center",
+              padding: tab.primary ? "8px 10px" : "7px 8px",
+              flex: tab.primary ? "1.12 1 0" : "1 1 0",
+              minWidth: 0,
+              borderRadius: tab.primary ? 16 : 14,
               textDecoration: "none",
               color: active ? tab.color : "var(--text-secondary)",
-              fontWeight: active ? 600 : 400,
+              fontWeight: active ? 800 : 600,
               fontSize: 11,
               transition: "all 0.2s",
-              background: tab.primary ? `${tab.color}14` : active ? `${tab.color}10` : "transparent",
+              background: tab.primary ? "linear-gradient(135deg,#059669,#06b6d4)" : active ? `${tab.color}12` : "transparent",
               position: "relative",
-              transform: tab.primary ? "translateY(-6px)" : "none",
-              boxShadow: tab.primary ? "0 8px 24px rgba(5,150,105,0.18)" : "none",
+              transform: "none",
+              boxShadow: tab.primary ? "0 10px 26px rgba(5,150,105,0.24)" : "none",
             }}
           >
             {tab.primary && active && (
               <div style={{
                 position: "absolute",
-                top: -2,
+                top: 3,
                 width: 24,
                 height: 3,
                 borderRadius: 2,
-                background: tab.color,
+                background: "rgba(255,255,255,.78)",
               }} />
             )}
             <span style={{
-              width: tab.primary ? 34 : 24,
-              height: tab.primary ? 34 : 24,
+              width: tab.primary ? 30 : 24,
+              height: tab.primary ? 30 : 24,
               display: "grid",
               placeItems: "center",
-              borderRadius: tab.primary ? 14 : 10,
-              background: tab.primary ? "linear-gradient(135deg,#059669,#06b6d4)" : "transparent",
+              borderRadius: 12,
+              background: tab.primary ? "rgba(255,255,255,.16)" : "transparent",
               color: tab.primary ? "#fff" : "currentColor",
             }}>
               {icons[tab.icon]}
             </span>
-            <span>{tab.label}</span>
+            <span style={{ color: tab.primary ? "#fff" : "currentColor", whiteSpace: "nowrap" }}>{tab.label}</span>
           </Link>
         );
       })}

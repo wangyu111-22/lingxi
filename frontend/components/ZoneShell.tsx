@@ -20,7 +20,14 @@ export default function ZoneShell({ children, title, icon, color, headerRight }:
   useEffect(() => { setVisible(true); }, []);
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", position: "relative" }}>
+    <div style={{
+      minHeight: "100vh",
+      background:
+        "linear-gradient(135deg, color-mix(in srgb, var(--bg) 92%, #f0fdfa), var(--bg) 54%, color-mix(in srgb, var(--bg) 92%, #fff7ed))",
+      position: "relative",
+      overflowX: "hidden",
+      paddingBottom: 92,
+    }}>
       <AuroraBackground />
       <BeamParticles />
       <div style={{
@@ -30,7 +37,7 @@ export default function ZoneShell({ children, title, icon, color, headerRight }:
         position: "relative", zIndex: 1,
       }}>
         <ZoneHeader title={title} icon={icon} color={color} rightSlot={headerRight} />
-        <main style={{ maxWidth: 1200, margin: "0 auto", padding: "24px" }}>
+        <main style={{ maxWidth: 1200, margin: "0 auto", padding: "24px clamp(16px, 3vw, 28px)" }}>
           {children}
         </main>
       </div>

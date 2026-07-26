@@ -17,35 +17,36 @@ export default function ZoneCard({ href, icon, title, desc, gradient, color }: Z
       href={href}
       className="zone-card glow-border"
       style={{
-        background: `linear-gradient(160deg, ${color}0C, ${color}03)`,
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        borderColor: `${color}18`,
+        background: `linear-gradient(160deg, rgba(255,255,255,.86), rgba(255,255,255,.58)), linear-gradient(180deg, ${color}12, transparent 58%)`,
+        backdropFilter: "blur(18px) saturate(1.12)",
+        WebkitBackdropFilter: "blur(18px) saturate(1.12)",
+        border: `1px solid ${color}1F`,
         textDecoration: "none",
         color: "inherit",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "36px 24px",
-        borderRadius: "var(--radius-xl)",
+        padding: "32px 24px",
+        borderRadius: 18,
         gap: 14,
-        transition: "all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1.2)",
+        transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
         cursor: "pointer",
         position: "relative",
         overflow: "hidden",
         minHeight: 200,
         animation: "floatIn 0.6s ease-out backwards",
+        boxShadow: "0 16px 42px rgba(15,23,42,.07)",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-6px) scale(1.02)";
-        e.currentTarget.style.boxShadow = `0 16px 48px ${color}22, 0 0 80px ${color}0A, inset 0 1px 0 ${color}15`;
-        e.currentTarget.style.borderColor = `${color}35`;
+        e.currentTarget.style.transform = "translateY(-4px)";
+        e.currentTarget.style.boxShadow = `0 22px 54px rgba(15,23,42,.12), 0 12px 36px ${color}1A`;
+        e.currentTarget.style.borderColor = `${color}3D`;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0) scale(1)";
-        e.currentTarget.style.boxShadow = "";
-        e.currentTarget.style.borderColor = `${color}18`;
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 16px 42px rgba(15,23,42,.07)";
+        e.currentTarget.style.borderColor = `${color}1F`;
       }}
     >
       {/* 大背景光晕 */}
@@ -56,10 +57,10 @@ export default function ZoneCard({ href, icon, title, desc, gradient, color }: Z
           right: -40,
           width: 140,
           height: 140,
-          borderRadius: "50%",
+          borderRadius: 999,
           background: gradient,
-          opacity: 0.04,
-          filter: "blur(50px)",
+          opacity: 0.08,
+          filter: "blur(42px)",
           pointerEvents: "none",
           transition: "all 0.4s",
         }}
@@ -73,9 +74,9 @@ export default function ZoneCard({ href, icon, title, desc, gradient, color }: Z
           left: -20,
           width: 80,
           height: 80,
-          borderRadius: "50%",
+          borderRadius: 999,
           background: gradient,
-          opacity: 0.03,
+          opacity: 0.05,
           filter: "blur(30px)",
           pointerEvents: "none",
         }}
@@ -100,13 +101,13 @@ export default function ZoneCard({ href, icon, title, desc, gradient, color }: Z
         style={{
           width: 60,
           height: 60,
-          borderRadius: 18,
+          borderRadius: 14,
           background: gradient,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           color: "#fff",
-          boxShadow: `0 8px 28px ${color}35, 0 0 40px ${color}12`,
+          boxShadow: `0 10px 28px ${color}2E`,
           position: "relative",
           zIndex: 1,
           transition: "all 0.3s",
@@ -120,7 +121,7 @@ export default function ZoneCard({ href, icon, title, desc, gradient, color }: Z
         <h3
           style={{
             fontSize: 18,
-            fontWeight: 700,
+            fontWeight: 800,
             margin: "0 0 6px",
             color: "var(--ink)",
             transition: "color 0.3s",
@@ -133,7 +134,7 @@ export default function ZoneCard({ href, icon, title, desc, gradient, color }: Z
             fontSize: 13,
             color: "var(--text-secondary)",
             margin: 0,
-            lineHeight: 1.5,
+            lineHeight: 1.65,
             maxWidth: 200,
           }}
         >
