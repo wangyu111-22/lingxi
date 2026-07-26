@@ -121,6 +121,31 @@ export default function BeautyPage() {
             </div>
           </Link>
 
+          <Link
+            href="/beauty/video"
+            className="glow-border"
+            style={{
+              padding: "24px",
+              borderRadius: "var(--radius-lg)",
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border)",
+              textDecoration: "none",
+              color: "inherit",
+              transition: "all 0.3s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🎥</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>视频动态分析</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+              上传穿搭或妆容视频，分析动态上镜效果、动作表现和风格稳定度
+            </div>
+            <div style={{ marginTop: 12, padding: "6px 14px", borderRadius: 20, background: "#8b5cf612", color: "#8b5cf6", fontSize: 12, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              🎬 动态模式
+            </div>
+          </Link>
+
           {/* 抖音灵感卡片（占位） */}
           <div
             className="glow-border"

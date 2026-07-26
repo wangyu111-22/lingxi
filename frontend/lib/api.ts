@@ -1039,6 +1039,63 @@ export interface AgentPipelineResponse {
   };
 }
 
+export interface EmotionEntry {
+  id: number;
+  mood?: string | null;
+  mood_emoji?: string | null;
+  content: string;
+  ai_reply?: string | null;
+  entry_type: "journal" | "chat";
+  date: string;
+  time: string;
+  created_at: string;
+}
+
+export const emotionApi = {
+  list: (sessionId: string, limit = 30) =>
+    request<{ items: EmotionEntry[]; count: number }>(`/emotion/entries?session_id=${encodeURIComponent(sessionId)}&limit=${limit}`),
+  create: (payload: { session_id: string; mood?: string | null; mood_emoji?: string | null; content: string; entry_type?: "journal" | "chat" }) =>
+    request<EmotionEntry>("/emotion/entries", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  chat: (payload: { session_id: string; mood?: string | null; mood_emoji?: string | null; content: string }) =>
+    request<EmotionEntry>("/emotion/chat", {
+      method: "POST",
+      body: JSON.stringify({ ...payload, entry_type: "chat" }),
+    }),
+};
+
+export interface BeautyVideoAnalysis {
+  id: number;
+  filename: string;
+  file_size: number;
+  scene_summary: string;
+  movement_summary: string;
+  style_advice: string;
+  date: string;
+  time: string;
+  created_at: string;
+}
+
+export const beautyApi = {
+  analyzeVideo: (sessionId: string, file: File, scene: string) => {
+    const form = new FormData();
+    form.append("session_id", sessionId);
+    form.append("scene", scene);
+    form.append("file", file);
+    return fetch(`${API_BASE_URL}/beauty/video/analyze`, {
+      method: "POST",
+      body: form,
+    }).then(async (response) => {
+      if (!response.ok) throw new Error(await response.text());
+      return response.json() as Promise<{ success: boolean; analysis: BeautyVideoAnalysis }>;
+    });
+  },
+  videoHistory: (sessionId: string, limit = 12) =>
+    request<{ items: BeautyVideoAnalysis[]; count: number }>(`/beauty/video/history?session_id=${encodeURIComponent(sessionId)}&limit=${limit}`),
+};
+
 
 // ==================== 灵犀编译 API ====================
 

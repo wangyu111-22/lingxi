@@ -539,6 +539,37 @@ class ChatMessage(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class EmotionEntry(Base):
+    """心理树洞记录：心情、倾诉内容与 AI 陪伴回复。"""
+    __tablename__ = 'emotion_entries'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), index=True, nullable=False)
+    owner_mid = Column(Integer, index=True, nullable=True)
+    mood = Column(String(40), nullable=True)
+    mood_emoji = Column(String(20), nullable=True)
+    content = Column(Text, nullable=False)
+    ai_reply = Column(Text, nullable=True)
+    entry_type = Column(String(20), default='journal')  # journal/chat
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class BeautyVideoAnalysis(Base):
+    """美美视频动态分析记录。"""
+    __tablename__ = 'beauty_video_analyses'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), index=True, nullable=False)
+    owner_mid = Column(Integer, index=True, nullable=True)
+    filename = Column(String(300), nullable=False)
+    file_size = Column(Integer, default=0)
+    duration_hint = Column(Float, nullable=True)
+    scene_summary = Column(Text, nullable=True)
+    movement_summary = Column(Text, nullable=True)
+    style_advice = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class ConversationResponse(BaseModel):
     """对话列表响应"""
     id: int
