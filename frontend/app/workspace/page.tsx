@@ -23,7 +23,6 @@ const FEATURES = [
   { href:"/tree", icon:"🌳", title:"知识树", desc:"可视化知识图谱结构", color:"#059669" },
   { href:"/learning-path", icon:"🗺️", title:"学习路径", desc:"AI 推荐最优学习路线", color:"#3b82f6" },
   { href:"/game", icon:"⚔️", title:"知识对战", desc:"游戏化复习巩固知识", color:"#f59e0b" },
-  { href:"/agent", icon:"🤖", title:"小灵 Agent", desc:"AI 知识库智能问答", color:"#8b5cf6" },
   { href:"/review", icon:"📝", title:"复习中心", desc:"间隔重复闪卡复习", color:"#14b8a6" },
   { href:"/memory", icon:"🧠", title:"记忆系统", desc:"Ebbinghaus 遗忘曲线管理", color:"#ec4899" },
   { href:"/organizer", icon:"📂", title:"整理收藏", desc:"视频分类与去重管理", color:"#84cc16" },

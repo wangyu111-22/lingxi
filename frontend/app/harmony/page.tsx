@@ -16,7 +16,7 @@ function Icon({ children, size = 18 }: { children: React.ReactNode; size?: numbe
 }
 
 const devices = [
-  { name: "手机", icon: "📱", scene: "小灵 Agent 对话、今日学习、扫码导入视频", color: "#059669" },
+  { name: "手机", icon: "📱", scene: "灵犀总 Agent 对话、今日学习、扫码导入视频", color: "#059669" },
   { name: "平板", icon: "📋", scene: "大屏知识图谱、视频边看边问、学习路径规划", color: "#3b82f6" },
   { name: "手表", icon: "⌚", scene: "一分钟闪卡、复习提醒、掌握度快速反馈", color: "#8b5cf6" },
   { name: "耳机", icon: "🎧", scene: "通勤语音问答、边听边复习、免手持交互", color: "#f59e0b" },

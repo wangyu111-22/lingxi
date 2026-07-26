@@ -177,7 +177,7 @@ export default function EmotionPage() {
           <section style={{ padding: 22, borderRadius: 18, background: "linear-gradient(135deg, rgba(236,72,153,.07), rgba(139,92,246,.06))", border: "1px solid rgba(236,72,153,.14)" }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: "#ec4899", marginBottom: 8 }}>每日肯定语</div>
             <p style={{ margin: 0, color: "var(--ink)", fontWeight: 700, lineHeight: 1.7 }}>{affirmation}</p>
-            <Link href="/agent" style={{ display: "inline-block", marginTop: 14, color: "#ec4899", fontSize: 13, fontWeight: 800, textDecoration: "none" }}>进入小灵 Agent →</Link>
+            <Link href="/agent" style={{ display: "inline-block", marginTop: 14, color: "#ec4899", fontSize: 13, fontWeight: 800, textDecoration: "none" }}>进入灵犀总 Agent →</Link>
           </section>
         </aside>
       </div>

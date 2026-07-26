@@ -68,8 +68,7 @@ export default function BottomTabBar() {
   const isActive = (href: string) => {
     if (href === "/workspace") {
       return pathname.startsWith("/workspace") || pathname.startsWith("/tree") ||
-        pathname.startsWith("/agent") || pathname.startsWith("/memory") ||
-        pathname.startsWith("/learning") || pathname.startsWith("/game") ||
+        pathname.startsWith("/memory") || pathname.startsWith("/learning") || pathname.startsWith("/game") ||
         pathname.startsWith("/review") || pathname.startsWith("/search");
     }
     return pathname === href || pathname.startsWith(href + "/");

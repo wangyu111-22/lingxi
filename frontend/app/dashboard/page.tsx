@@ -16,7 +16,7 @@ const featureCards = [
   {
     href: "/workspace",
     title: "学习区",
-    desc: "视频编译、知识树、学习路径、复习、记忆系统和小灵 Agent 都集中在这里。",
+    desc: "视频编译、知识树、学习路径、复习、记忆系统都集中在这里。",
     color: "#059669",
     icon: "M12 3 3 8l9 5 9-5-9-5ZM3 13l9 5 9-5M3 18l9 5 9-5",
   },

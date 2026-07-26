@@ -94,7 +94,7 @@ class ProactiveAgent:
         elif any(k in text for k in ["视频", "边看", "解释", "总结", "概念"]):
             intent = "evidence_qa"
             reply = "你可以边看视频边问我。我会优先检索知识树和证据片段，并标注来源时间戳。"
-            actions = [{"type": "open_page", "label": "打开小灵 Agent", "target": "/agent"}]
+            actions = [{"type": "open_page", "label": "打开灵犀总 Agent", "target": "/agent"}]
         elif "收藏" in text or "导入" in text:
             intent = "import_resource"
             reply = "我可以帮你从收藏夹或链接导入资源，先编译成知识树再进入复习闭环。"

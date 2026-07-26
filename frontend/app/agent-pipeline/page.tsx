@@ -32,7 +32,7 @@ export default function AgentPipelinePage() {
       <div style={{ maxWidth: 980, margin: "0 auto", display: "grid", gap: 18 }}>
         <section className="glow-border" style={{ padding: 22, borderRadius: 18, background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
           <div style={{ fontSize: 13, color: "#6366f1", fontWeight: 800 }}>HarmonyOS Agent · Sense → Decide → Act</div>
-          <h1 style={{ margin: "8px 0", fontSize: 28, color: "var(--ink)" }}>真实上下文驱动的小灵 Agent 编排</h1>
+          <h1 style={{ margin: "8px 0", fontSize: 28, color: "var(--ink)" }}>真实上下文驱动的灵犀总 Agent 编排</h1>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && run()} style={{ flex: 1, minWidth: 280, padding: "12px 14px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--ink)" }} />
             <button onClick={() => run()} disabled={loading} className="btn btn-primary">{loading ? "运行中..." : "运行 Agent"}</button>

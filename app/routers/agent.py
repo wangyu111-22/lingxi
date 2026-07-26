@@ -16,6 +16,7 @@ from app.database import get_db
 from app.models import Conversation, ChatMessage
 from app.routers.auth import get_session
 from app.services.agent import KnowledgeAgent
+from app.services.agent_context import build_agent_context
 from app.utils import resolve_owner_mid
 
 router = APIRouter(prefix="/agent", tags=["智能体"])
@@ -79,10 +80,11 @@ async def agent_ask(request: AgentAskRequest, db: AsyncSession = Depends(get_db)
     db.add(user_msg)
     await db.commit()
 
-    # 执行智能体
+    # 执行全局智能体：学习知识库工具 + 全项目状态上下文
     agent = KnowledgeAgent(db, request.session_id)
     try:
-        result = await agent.run(request.question.strip())
+        global_context = await build_agent_context(db, session_id=request.session_id)
+        result = await agent.run(request.question.strip(), global_context=global_context)
     except Exception as e:
         logger.error(f"智能体执行失败: {e}")
         raise HTTPException(status_code=500, detail="智能体执行失败，请稍后重试")
@@ -107,6 +109,17 @@ async def agent_ask(request: AgentAskRequest, db: AsyncSession = Depends(get_db)
         conversation_id=conv_id,
         citations=result.get("citations", []),
     )
+
+
+@router.get("/context")
+async def agent_context(
+    session_id: str = Query(..., description="会话ID"),
+    db: AsyncSession = Depends(get_db),
+):
+    """获取当前用户全项目 Agent 状态摘要。"""
+    if not await get_session(session_id):
+        raise HTTPException(status_code=401, detail="会话无效或已过期，请重新登录")
+    return await build_agent_context(db, session_id=session_id)
 
 
 @router.get("/conversations")

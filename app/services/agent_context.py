@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import (
     ChatMessage,
     Conversation,
+    BeautyVideoAnalysis,
+    EmotionEntry,
     FavoriteFolder,
     GameScore,
     KnowledgeNode,
@@ -64,6 +66,8 @@ async def build_agent_context(
     concept_count = await _count(db, KnowledgeNode, owner_mid, session_id, KnowledgeNode.node_type == "concept")
     segment_count = await _count(db, Segment, owner_mid, session_id)
     memory_count = await _count(db, MemoryNode, owner_mid, session_id)
+    emotion_entries = await _count(db, EmotionEntry, owner_mid, session_id)
+    beauty_analyses = await _count(db, BeautyVideoAnalysis, owner_mid, session_id)
     compiled_videos = await _count(db, VideoCache, owner_mid, session_id, VideoCache.is_processed == True)
     pending_videos = await _count(db, VideoCache, owner_mid, session_id, VideoCache.is_processed == False)
     collections = await _count(db, UserCollection, owner_mid, session_id)
@@ -127,6 +131,17 @@ async def build_agent_context(
             "weak_points": weak_points,
         },
         "memory": {"nodes": memory_count, "recent_user_messages": recent_messages},
+        "emotion_space": {
+            "entries": emotion_entries,
+            "state": "需要关怀" if period in ["深夜", "晚间"] else "稳定",
+        },
+        "beauty": {
+            "analyses": beauty_analyses,
+            "capability": "照片/实时相机分析、穿搭与妆容建议",
+        },
+        "home": {
+            "capability": "小家、花园、宠物、农场状态管理",
+        },
         "game": {
             "score": getattr(game_score, "score", 0) if game_score else 0,
             "correct_count": getattr(game_score, "correct_count", 0) if game_score else 0,
