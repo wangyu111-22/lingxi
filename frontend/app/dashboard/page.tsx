@@ -35,6 +35,13 @@ const featureCards = [
     icon: "M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z",
   },
   {
+    href: "/agent",
+    title: "Agent",
+    desc: "汇总学习、天气、情绪和生活上下文，提供主动建议与自然对话。",
+    color: "#8b5cf6",
+    icon: "M12 3a7 7 0 0 0-7 7v3a7 7 0 0 0 14 0v-3a7 7 0 0 0-7-7ZM8.5 11h.01M15.5 11h.01M9 16c1.6 1.2 4.4 1.2 6 0M12 3V1.5M5 13H3M21 13h-2",
+  },
+  {
     href: "/home-garden",
     title: "小家",
     desc: "管理生活空间、家庭任务、宠物和小花园。",
@@ -250,7 +257,7 @@ export default function DashboardPage() {
         .feature-section { margin-top: 22px; padding-bottom: 84px; }
         .feature-grid {
           display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 14px;
           align-items: stretch;
         }
@@ -300,9 +307,6 @@ export default function DashboardPage() {
         @media (max-width: 980px) {
           .dashboard-hero { grid-template-columns: 1fr; }
           .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-        @media (min-width: 981px) and (max-width: 1180px) {
-          .feature-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
         @media (max-width: 560px) {
           .dashboard-page { padding: 16px; }

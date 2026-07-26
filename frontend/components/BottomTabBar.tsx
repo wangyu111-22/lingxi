@@ -8,6 +8,7 @@ const tabs = [
   { href: "/workspace", label: "学习", icon: "learn", color: "#059669" },
   { href: "/emotion", label: "树洞", icon: "heart", color: "#ec4899" },
   { href: "/dashboard", label: "首页", icon: "home", color: "#059669", primary: true },
+  { href: "/agent", label: "Agent", icon: "agent", color: "#8b5cf6" },
   { href: "/home-garden", label: "小家", icon: "garden", color: "#84cc16" },
   { href: "/beauty", label: "美美", icon: "star", color: "#f59e0b" },
 ];
@@ -47,6 +48,11 @@ export default function BottomTabBar() {
         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/>
       </svg>
     ),
+    agent: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M12 3a7 7 0 0 0-7 7v3a7 7 0 0 0 14 0v-3a7 7 0 0 0-7-7Z"/><path d="M8.5 11h.01M15.5 11h.01M9 16c1.6 1.2 4.4 1.2 6 0M12 3V1.5M5 13H3M21 13h-2"/>
+      </svg>
+    ),
     work: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
         <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 12h18"/>
@@ -81,7 +87,7 @@ export default function BottomTabBar() {
         justifyContent: "center",
         alignItems: "center",
         gap: 6,
-        width: "min(calc(100vw - 24px), 520px)",
+        width: "min(calc(100vw - 24px), 610px)",
         padding: "7px",
         background: "color-mix(in srgb, var(--bg-elevated) 88%, transparent)",
         border: "1px solid color-mix(in srgb, var(--border) 72%, transparent)",
