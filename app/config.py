@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     huawei_embedding_deployment_id: str = Field(default="", env="HUAWEI_EMBEDDING_DEPLOYMENT_ID")
     huawei_embedding_model: str = Field(default="Pangu-EmbeddingRank-zh-2.0.3", env="HUAWEI_EMBEDDING_MODEL")
 
+    # --- 视觉/多模态分析（美美区域照片分析）---
+    vision_provider: str = Field(default="huawei", env="VISION_PROVIDER")  # huawei | openai_compatible | fallback
+    vision_api_key: str = Field(default="", env="VISION_API_KEY")
+    vision_base_url: str = Field(default="", env="VISION_BASE_URL")
+    vision_model: str = Field(default="", env="VISION_MODEL")
+
     # DashScope ASR (过渡期备用)
     dashscope_base_url: str = Field(
         default="https://dashscope.aliyuncs.com/api/v1",

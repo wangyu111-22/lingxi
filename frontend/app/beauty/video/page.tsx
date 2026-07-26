@@ -3,8 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ZoneShell from "@/components/ZoneShell";
-import { beautyApi, BeautyVideoAnalysis } from "@/lib/api";
+import { beautyApi, BeautyVideoAnalysis, BeautyVisionStatus } from "@/lib/api";
 import { useAuthSession } from "@/lib/session";
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default function BeautyCameraPage() {
   const { sessionId } = useAuthSession();
@@ -20,11 +24,16 @@ export default function BeautyCameraPage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<BeautyVideoAnalysis | null>(null);
   const [history, setHistory] = useState<BeautyVideoAnalysis[]>([]);
+  const [visionStatus, setVisionStatus] = useState<BeautyVisionStatus | null>(null);
 
   useEffect(() => {
     if (!sessionId) return;
     beautyApi.videoHistory(sessionId).then((res) => setHistory(res.items)).catch(() => {});
   }, [sessionId]);
+
+  useEffect(() => {
+    beautyApi.visionStatus().then(setVisionStatus).catch(() => {});
+  }, []);
 
   useEffect(() => () => stopCamera(), []);
 
@@ -90,8 +99,8 @@ export default function BeautyCameraPage() {
       const res = await beautyApi.analyzeCapture(sessionId, photoBlob, scene, name);
       setResult(res.analysis);
       setHistory((prev) => [res.analysis, ...prev.filter((item) => item.id !== res.analysis.id)]);
-    } catch (e: any) {
-      setError(e.message || "分析失败");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "分析失败"));
     } finally {
       setLoading(false);
     }
@@ -110,6 +119,12 @@ export default function BeautyCameraPage() {
             <div style={{ fontSize: 42, marginBottom: 8 }}>📸</div>
             <h2 style={{ margin: 0, color: "var(--ink)", fontSize: 22 }}>实时拍照分析</h2>
             <p style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.7 }}>打开摄像头直接拍照，或上传已有照片，AI 立即分析妆容、肤色、脸型和穿搭比例。</p>
+            {visionStatus && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 8, padding: "6px 10px", borderRadius: 999, background: visionStatus.configured ? "rgba(16,185,129,.10)" : "rgba(245,158,11,.12)", color: visionStatus.configured ? "#059669" : "#b45309", fontSize: 12, fontWeight: 800 }}>
+                <span>{visionStatus.configured ? "AI 视觉已配置" : "本地降级模式"}</span>
+                <span style={{ opacity: .8 }}>{visionStatus.model || visionStatus.provider}</span>
+              </div>
+            )}
           </div>
 
           <div style={{ aspectRatio: "16/10", borderRadius: 16, background: "var(--bg-sunken)", overflow: "hidden", display: "grid", placeItems: "center", marginBottom: 12, border: "1px solid var(--border)" }}>

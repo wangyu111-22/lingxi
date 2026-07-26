@@ -1078,6 +1078,14 @@ export interface BeautyVideoAnalysis {
   created_at: string;
 }
 
+export interface BeautyVisionStatus {
+  provider: string;
+  configured: boolean;
+  base_url: string;
+  model: string;
+  fallback_enabled: boolean;
+}
+
 export const beautyApi = {
   analyzeCapture: (sessionId: string, file: File | Blob, scene: string, filename = "capture.jpg") => {
     const form = new FormData();
@@ -1096,6 +1104,7 @@ export const beautyApi = {
     beautyApi.analyzeCapture(sessionId, file, scene, file.name),
   videoHistory: (sessionId: string, limit = 12) =>
     request<{ items: BeautyVideoAnalysis[]; count: number }>(`/beauty/video/history?session_id=${encodeURIComponent(sessionId)}&limit=${limit}`),
+  visionStatus: () => request<BeautyVisionStatus>("/beauty/vision/status"),
 };
 
 

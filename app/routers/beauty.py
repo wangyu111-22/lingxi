@@ -10,25 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import BeautyVideoAnalysis
 from app.routers.auth import get_session
+from app.services.beauty_vision import analyze_beauty_image, get_vision_status
 from app.utils import resolve_owner_mid
 
 router = APIRouter(prefix="/beauty", tags=["美美区域"])
-
-
-def _analysis_for_image(filename: str, size: int, scene: str = "") -> dict:
-    mb = size / 1024 / 1024
-    scene_text = scene.strip() or "实时自拍/穿搭检查场景"
-    if mb > 4:
-        detail = "照片清晰度较高，适合观察脸型比例、肤色明暗、妆容显色和整体穿搭轮廓。"
-    elif mb > 1:
-        detail = "照片体量适中，可以完成基础脸型、肤色和穿搭风格判断。"
-    else:
-        detail = "照片较小，适合快速判断整体风格；如果要更精准，建议靠近自然光重新拍一张。"
-    return {
-        "scene_summary": f"已识别为「{scene_text}」。文件 {filename}，大小约 {mb:.1f}MB。",
-        "movement_summary": detail,
-        "style_advice": "建议使用正面自然光拍摄：脸部不要过度遮挡，肩颈和上半身尽量入镜。这样 AI 能更准确分析妆容、肤色、脸型和穿搭比例。",
-    }
 
 
 def _item_to_dict(item: BeautyVideoAnalysis) -> dict:
@@ -47,6 +32,11 @@ def _item_to_dict(item: BeautyVideoAnalysis) -> dict:
     }
 
 
+@router.get("/vision/status")
+async def vision_status():
+    return get_vision_status()
+
+
 @router.post("/capture/analyze")
 async def analyze_capture(
     session_id: str = Form(...),
@@ -60,11 +50,12 @@ async def analyze_capture(
     if not content:
         raise HTTPException(status_code=400, detail="照片文件不能为空")
     owner_mid = await resolve_owner_mid(db, session_id)
-    analysis = _analysis_for_image(file.filename or "capture.jpg", len(content), scene)
+    filename = file.filename or "capture.jpg"
+    analysis = await analyze_beauty_image(filename, content, scene, file.content_type)
     item = BeautyVideoAnalysis(
         session_id=session_id,
         owner_mid=owner_mid,
-        filename=file.filename or "capture.jpg",
+        filename=filename,
         file_size=len(content),
         scene_summary=analysis["scene_summary"],
         movement_summary=analysis["movement_summary"],
