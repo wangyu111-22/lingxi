@@ -1,4 +1,4 @@
-"""美美区域：动态视频分析与记录。"""
+"""美美区域：实时相机/照片分析与记录。"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,19 +15,19 @@ from app.utils import resolve_owner_mid
 router = APIRouter(prefix="/beauty", tags=["美美区域"])
 
 
-def _analysis_for_video(filename: str, size: int, scene: str = "") -> dict:
+def _analysis_for_image(filename: str, size: int, scene: str = "") -> dict:
     mb = size / 1024 / 1024
-    scene_text = scene.strip() or "日常自拍/穿搭展示场景"
-    if mb > 80:
-        motion = "视频体量较大，推测包含较完整的走动、转身或多角度展示，适合做整体体态与穿搭动态分析。"
-    elif mb > 15:
-        motion = "视频长度适中，适合观察正面、侧面和轻微转身时的服装垂坠与妆容稳定度。"
+    scene_text = scene.strip() or "实时自拍/穿搭检查场景"
+    if mb > 4:
+        detail = "照片清晰度较高，适合观察脸型比例、肤色明暗、妆容显色和整体穿搭轮廓。"
+    elif mb > 1:
+        detail = "照片体量适中，可以完成基础脸型、肤色和穿搭风格判断。"
     else:
-        motion = "视频较短，更适合做快速风格判断和镜头表现建议。"
+        detail = "照片较小，适合快速判断整体风格；如果要更精准，建议靠近自然光重新拍一张。"
     return {
         "scene_summary": f"已识别为「{scene_text}」。文件 {filename}，大小约 {mb:.1f}MB。",
-        "movement_summary": motion,
-        "style_advice": "建议补充 3 个镜头：正面自然站姿、侧身走动、近景面部表情。这样 AI 能更准确判断穿搭比例、妆容显色和动态上镜效果。",
+        "movement_summary": detail,
+        "style_advice": "建议使用正面自然光拍摄：脸部不要过度遮挡，肩颈和上半身尽量入镜。这样 AI 能更准确分析妆容、肤色、脸型和穿搭比例。",
     }
 
 
@@ -47,8 +47,8 @@ def _item_to_dict(item: BeautyVideoAnalysis) -> dict:
     }
 
 
-@router.post("/video/analyze")
-async def analyze_video(
+@router.post("/capture/analyze")
+async def analyze_capture(
     session_id: str = Form(...),
     scene: str = Form(""),
     file: UploadFile = File(...),
@@ -58,13 +58,13 @@ async def analyze_video(
         raise HTTPException(status_code=401, detail="会话无效或已过期")
     content = await file.read()
     if not content:
-        raise HTTPException(status_code=400, detail="视频文件不能为空")
+        raise HTTPException(status_code=400, detail="照片文件不能为空")
     owner_mid = await resolve_owner_mid(db, session_id)
-    analysis = _analysis_for_video(file.filename or "video", len(content), scene)
+    analysis = _analysis_for_image(file.filename or "capture.jpg", len(content), scene)
     item = BeautyVideoAnalysis(
         session_id=session_id,
         owner_mid=owner_mid,
-        filename=file.filename or "video",
+        filename=file.filename or "capture.jpg",
         file_size=len(content),
         scene_summary=analysis["scene_summary"],
         movement_summary=analysis["movement_summary"],
@@ -74,6 +74,17 @@ async def analyze_video(
     await db.commit()
     await db.refresh(item)
     return {"success": True, "analysis": _item_to_dict(item)}
+
+
+@router.post("/video/analyze")
+async def analyze_video(
+    session_id: str = Form(...),
+    scene: str = Form(""),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """兼容旧入口：实际按照片/截图分析保存。"""
+    return await analyze_capture(session_id=session_id, scene=scene, file=file, db=db)
 
 
 @router.get("/video/history")

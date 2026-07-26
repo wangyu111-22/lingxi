@@ -1079,12 +1079,12 @@ export interface BeautyVideoAnalysis {
 }
 
 export const beautyApi = {
-  analyzeVideo: (sessionId: string, file: File, scene: string) => {
+  analyzeCapture: (sessionId: string, file: File | Blob, scene: string, filename = "capture.jpg") => {
     const form = new FormData();
     form.append("session_id", sessionId);
     form.append("scene", scene);
-    form.append("file", file);
-    return fetch(`${API_BASE_URL}/beauty/video/analyze`, {
+    form.append("file", file, filename);
+    return fetch(`${API_BASE_URL}/beauty/capture/analyze`, {
       method: "POST",
       body: form,
     }).then(async (response) => {
@@ -1092,6 +1092,8 @@ export const beautyApi = {
       return response.json() as Promise<{ success: boolean; analysis: BeautyVideoAnalysis }>;
     });
   },
+  analyzeVideo: (sessionId: string, file: File, scene: string) =>
+    beautyApi.analyzeCapture(sessionId, file, scene, file.name),
   videoHistory: (sessionId: string, limit = 12) =>
     request<{ items: BeautyVideoAnalysis[]; count: number }>(`/beauty/video/history?session_id=${encodeURIComponent(sessionId)}&limit=${limit}`),
 };
