@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ZoneShell from "@/components/ZoneShell";
 import Live2DCharacter from "@/components/Live2DCharacter";
-import { API_BASE_URL } from "@/lib/api";
+import { agentApi, AgentProviderStatus, API_BASE_URL } from "@/lib/api";
 
 interface Message {
   role: "user" | "assistant";
@@ -48,6 +48,7 @@ export default function AgentPage() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [hasKnowledge, setHasKnowledge] = useState(false);
   const [context, setContext] = useState<AgentContext | null>(null);
+  const [provider, setProvider] = useState<AgentProviderStatus | null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
 
@@ -57,6 +58,7 @@ export default function AgentPage() {
   useEffect(() => {
     if (loadedRef.current) return;
     loadedRef.current = true;
+    agentApi.providerStatus().then(setProvider).catch(() => {});
     const sid = getSessionId();
     if (!sid) return;
 
@@ -184,6 +186,11 @@ export default function AgentPage() {
             </div>
         </section>
         <aside style={{ display: "grid", gap: 12, alignContent: "start" }}>
+          <div style={{ padding: 16, borderRadius: 16, background: provider?.configured ? "rgba(16,185,129,.10)" : "rgba(245,158,11,.12)", border: `1px solid ${provider?.configured ? "rgba(16,185,129,.24)" : "rgba(245,158,11,.28)"}`, boxShadow: "0 12px 34px rgba(15,23,42,.10)" }}>
+            <div style={{ color: provider?.configured ? "#059669" : "#b45309", fontSize: 12, fontWeight: 900, marginBottom: 6 }}>模型接入状态</div>
+            <div style={{ color: "var(--ink)", fontSize: 14, fontWeight: 900, lineHeight: 1.55 }}>{provider?.display_name || "读取中"}</div>
+            <div style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>{provider?.configured ? `已配置：${provider.model}` : "未配置真实模型，部分回答会失败或降级"}</div>
+          </div>
           {[
             ["时间天气", `${context?.time?.period || "--"} ${context?.time?.clock || "--"} · ${context?.weather?.city || "北京"} ${context?.weather?.condition || "未知"}`],
             ["学习区", `${context?.learning?.nodes || 0} 个知识节点 · ${context?.learning?.due_reviews || 0} 个待复习`],

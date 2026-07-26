@@ -18,6 +18,7 @@ from app.agent_engine.skills import get_all_skills, match_intent, LINGXI_SKILLS
 from app.database import get_db
 from app.routers.auth import get_session
 from app.services.agent_context import build_agent_context
+from app.services.llm_provider import get_provider_status
 
 router = APIRouter(prefix="/agent", tags=["Agent编排"])
 
@@ -223,11 +224,19 @@ async def xiaoyi_webhook(request: XiaoyiIntent, db: AsyncSession = Depends(get_d
 @router.get("/xiaoyi/health")
 async def xiaoyi_health():
     """小艺开放平台健康检查端点"""
+    provider = get_provider_status()
     return {
         "status": "ok",
         "agent": "灵犀 LingXi",
         "version": "2.0",
-        "engine": "华为盘古大模型",
+        "engine": provider["display_name"],
+        "provider": provider,
         "skills": len(LINGXI_SKILLS),
         "devices": ["phone", "tablet", "watch", "headphone", "smart_screen"],
     }
+
+
+@router.get("/provider/status")
+async def provider_status():
+    """返回总 Agent 当前实际使用的大模型 Provider。"""
+    return get_provider_status()

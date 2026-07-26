@@ -18,10 +18,10 @@ from loguru import logger
 from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.routers.knowledge import _load_graph_for_session, get_rag_service
 from app.services import evidence_qa
 from app.services.graph_store import GraphStore
+from app.services.llm_provider import create_async_client, get_model_name
 from app.services.path_recommender import PathRecommender
 
 MAX_STEPS = 6  # 工具调用轮数上限，防止失控
@@ -129,9 +129,7 @@ def _client() -> AsyncOpenAI:
     """进程级单例 + 显式超时（避免每请求新建连接池、避免单次 LLM 卡死占用 worker）。"""
     global _async_client
     if _async_client is None:
-        _async_client = AsyncOpenAI(
-            api_key=settings.openai_api_key, base_url=settings.openai_base_url, timeout=60.0,
-        )
+        _async_client = create_async_client(timeout=60.0)
     return _async_client
 
 
@@ -266,7 +264,7 @@ class KnowledgeAgent:
 
         for _ in range(MAX_STEPS):
             resp = await client.chat.completions.create(
-                model=settings.llm_model, messages=messages, tools=_TOOLS,
+                model=get_model_name(), messages=messages, tools=_TOOLS,
                 tool_choice="auto", temperature=0.3,
             )
             msg = resp.choices[0].message
@@ -307,7 +305,7 @@ class KnowledgeAgent:
         # 达到步数上限：禁用工具，让模型基于已有信息收尾
         messages.append({"role": "user", "content": "请基于以上检索到的信息直接给出最终回答（带来源编号）。"})
         resp = await client.chat.completions.create(
-            model=settings.llm_model, messages=messages, tools=_TOOLS,
+            model=get_model_name(), messages=messages, tools=_TOOLS,
             tool_choice="none", temperature=0.3,
         )
         answer = (resp.choices[0].message.content or "").strip() or "已检索到部分信息，但未能生成最终回答，请重试。"

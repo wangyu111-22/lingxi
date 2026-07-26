@@ -1002,6 +1002,7 @@ export const agentApi = {
     return request<AgentPipelineResponse>(`/agent/pipeline?${params.toString()}`);
   },
   skills: () => request<{ agent: string; version: string; skills: AgentSkill[] }>("/agent/skills"),
+  providerStatus: () => request<AgentProviderStatus>("/agent/provider/status"),
 };
 
 export interface AgentSkill {
@@ -1037,6 +1038,14 @@ export interface AgentPipelineResponse {
     interaction: string[];
     devices: string[];
   };
+}
+
+export interface AgentProviderStatus {
+  provider: string;
+  display_name: string;
+  configured: boolean;
+  base_url: string;
+  model: string;
 }
 
 export interface EmotionEntry {

@@ -77,6 +77,19 @@ def get_provider_name() -> str:
     return settings.llm_provider.lower()
 
 
+def get_provider_status() -> dict:
+    """返回当前 LLM Provider 的真实配置状态，供健康检查和前端展示使用。"""
+    api_key, base_url, model = get_llm_config()
+    provider = get_provider_name()
+    return {
+        "provider": provider,
+        "display_name": get_provider_display_name(),
+        "configured": bool(api_key and base_url and model),
+        "base_url": base_url,
+        "model": model,
+    }
+
+
 def get_iam_token() -> str:
     """
     获取华为云 IAM Token（用于 ASR / TTS / Embedding）。
