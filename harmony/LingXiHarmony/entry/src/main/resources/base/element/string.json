@@ -1,0 +1,20 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "LingXi HarmonyOS container"
+    },
+    {
+      "name": "entryability_desc",
+      "value": "LingXi entry ability"
+    },
+    {
+      "name": "camera_permission_reason",
+      "value": "用于美美区域实时拍照分析"
+    },
+    {
+      "name": "location_permission_reason",
+      "value": "用于天气、穿搭和主动服务建议"
+    }
+  ]
+}

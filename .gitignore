@@ -17,3 +17,10 @@ tmp/
 *.tar.gz
 ui-crawl-*.ndjson
 ui-crawl-results.ndjson
+harmony/**/build/
+harmony/**/.preview/
+harmony/**/.hvigor/
+harmony/**/.idea/
+harmony/**/.ohpm/
+harmony/**/node_modules/
+harmony/**/oh_modules/
