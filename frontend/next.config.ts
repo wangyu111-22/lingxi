@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // ========== 移动端 APK 打包 ==========
+  turbopack: {
+    root: process.cwd(),
+  },
   transpilePackages: ['face-api.js'],
   allowedDevOrigins: ['127.0.0.1', 'localhost'],
   images: {
