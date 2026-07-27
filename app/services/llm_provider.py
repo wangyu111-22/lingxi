@@ -90,7 +90,7 @@ def get_provider_status() -> dict:
     }
 
 
-def get_iam_token() -> str:
+def get_iam_token(project_id: str | None = None) -> str:
     """
     获取华为云 IAM Token（用于 ASR / TTS / Embedding）。
 
@@ -110,7 +110,7 @@ def get_iam_token() -> str:
         return ""
 
     iam_endpoint = settings.huawei_iam_endpoint.rstrip("/")
-    project_id = settings.huawei_project_id
+    project_id = project_id or settings.huawei_project_id
     url = f"{iam_endpoint}/v3/auth/tokens"
 
     body = {

@@ -54,6 +54,7 @@ class Settings(BaseSettings):
         default="https://sis-ext.cn-north-4.myhuaweicloud.com",
         env="HUAWEI_SIS_ENDPOINT"
     )
+    huawei_sis_project_id: str = Field(default="", env="HUAWEI_SIS_PROJECT_ID")
 
     # --- 华为 Embedding 部署 ---
     huawei_embedding_deployment_id: str = Field(default="", env="HUAWEI_EMBEDDING_DEPLOYMENT_ID")

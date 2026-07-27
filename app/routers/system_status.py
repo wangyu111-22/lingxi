@@ -46,7 +46,7 @@ def build_service_status() -> dict:
                 },
             },
             "speech": {
-                "huawei": huawei_auth and _configured(settings.huawei_project_id),
+                "huawei": huawei_auth and _configured(settings.huawei_sis_project_id or settings.huawei_project_id),
                 "dashscope_asr": dashscope,
                 "edge_tts_fallback": True,
             },

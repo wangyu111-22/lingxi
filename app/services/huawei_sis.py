@@ -25,7 +25,7 @@ class HuaweiSISService:
 
     def __init__(self):
         self.sis_endpoint = settings.huawei_sis_endpoint.rstrip("/")
-        self.project_id = settings.huawei_project_id
+        self.project_id = settings.huawei_sis_project_id or settings.huawei_project_id
         self.api_key = settings.huawei_api_key
         self._cached_token: str | None = None
         self._token_expiry: float = 0.0
@@ -38,7 +38,7 @@ class HuaweiSISService:
             return self._cached_token
 
         from app.services.llm_provider import get_iam_token
-        token = await asyncio.to_thread(get_iam_token)
+        token = await asyncio.to_thread(get_iam_token, self.project_id)
         if not token and self.api_key:
             # 如果 IAM Token 获取失败，尝试用 API Key
             token = self.api_key

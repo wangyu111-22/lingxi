@@ -53,7 +53,7 @@ async def tts_speak(
     text = text.strip()
 
     # ── 主引擎: 华为 SIS TTS ──
-    if settings.huawei_api_key and settings.huawei_project_id:
+    if settings.huawei_api_key and (settings.huawei_sis_project_id or settings.huawei_project_id):
         hw_voice = HUAWEI_VOICES.get(voice, HUAWEI_VOICES[DEFAULT_VOICE])
         try:
             sis = get_sis_service()
