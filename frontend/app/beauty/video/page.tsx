@@ -177,6 +177,28 @@ export default function BeautyCameraPage() {
                   <p style={{ margin: "8px 0 0", color: "var(--text-secondary)", lineHeight: 1.7, fontSize: 13 }}>{v}</p>
                 </div>
               ))}
+              {result.recommendations && result.recommendations.length > 0 && (
+                <div style={{ padding: 14, borderRadius: 14, background: "var(--bg-sunken)", border: "1px solid var(--border-light)" }}>
+                  <strong style={{ color: "#ec4899", fontSize: 13 }}>平台视频/笔记推荐</strong>
+                  <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+                    {result.recommendations.map((rec, index) => (
+                      <a
+                        key={`${rec.platform}-${index}`}
+                        href={rec.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: "block", padding: 12, borderRadius: 12, background: "var(--bg-elevated)", border: "1px solid var(--border)", textDecoration: "none" }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+                          <span style={{ color: "var(--ink)", fontSize: 13, fontWeight: 900 }}>{rec.title}</span>
+                          <span style={{ color: rec.platform === "douyin" ? "#111827" : "#fe2c55", fontSize: 11, fontWeight: 900 }}>{rec.label}</span>
+                        </div>
+                        <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.6 }}>{rec.reason}</p>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ padding: 40, textAlign: "center", color: "var(--text-secondary)", background: "var(--bg-sunken)", borderRadius: 14 }}>拍照或上传照片后会显示分析结论。</div>
@@ -191,6 +213,21 @@ export default function BeautyCameraPage() {
                   <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>{item.date} {item.time}</span>
                 </div>
                 <p style={{ margin: "6px 0 0", color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.6 }}>{item.style_advice}</p>
+                {item.recommendations && item.recommendations.length > 0 && (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                    {item.recommendations.slice(0, 2).map((rec, index) => (
+                      <a
+                        key={`${item.id}-${rec.platform}-${index}`}
+                        href={rec.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ padding: "5px 9px", borderRadius: 999, background: rec.platform === "douyin" ? "#11182712" : "#fe2c5512", color: rec.platform === "douyin" ? "#111827" : "#fe2c55", fontSize: 11, fontWeight: 900, textDecoration: "none" }}
+                      >
+                        {rec.label}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

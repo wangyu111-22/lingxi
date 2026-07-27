@@ -1085,6 +1085,15 @@ export interface BeautyVideoAnalysis {
   date: string;
   time: string;
   created_at: string;
+  recommendations?: BeautyPlatformRecommendation[];
+}
+
+export interface BeautyPlatformRecommendation {
+  platform: "douyin" | "xiaohongshu" | string;
+  label: string;
+  title: string;
+  reason: string;
+  url: string;
 }
 
 export interface BeautyVisionStatus {

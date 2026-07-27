@@ -10,13 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import BeautyVideoAnalysis
 from app.routers.auth import get_session
+from app.services.beauty_recommendations import build_beauty_recommendations
 from app.services.beauty_vision import analyze_beauty_image, get_vision_status
 from app.utils import resolve_owner_mid
 
 router = APIRouter(prefix="/beauty", tags=["美美区域"])
 
 
-def _item_to_dict(item: BeautyVideoAnalysis) -> dict:
+def _item_to_dict(item: BeautyVideoAnalysis, recommendations: list[dict[str, str]] | None = None) -> dict:
     dt = item.created_at or datetime.utcnow()
     return {
         "id": item.id,
@@ -29,6 +30,11 @@ def _item_to_dict(item: BeautyVideoAnalysis) -> dict:
         "created_at": dt.isoformat(),
         "date": dt.strftime("%m月%d日"),
         "time": dt.strftime("%H:%M"),
+        "recommendations": recommendations or build_beauty_recommendations({
+            "scene_summary": item.scene_summary or "",
+            "movement_summary": item.movement_summary or "",
+            "style_advice": item.style_advice or "",
+        }),
     }
 
 
@@ -64,7 +70,8 @@ async def analyze_capture(
     db.add(item)
     await db.commit()
     await db.refresh(item)
-    return {"success": True, "analysis": _item_to_dict(item)}
+    recommendations = build_beauty_recommendations(analysis, scene)
+    return {"success": True, "analysis": _item_to_dict(item, recommendations)}
 
 
 @router.post("/video/analyze")

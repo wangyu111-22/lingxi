@@ -41,8 +41,9 @@ def identify_platform(url: str) -> tuple[str, dict]:
         return "zhihu", parsed or {}
     elif "douyin.com" in url or "iesdouyin.com" in url:
         from app.services.douyin import DouyinService
-        aweme_id = DouyinService.extract_aweme_id(url)
-        return "douyin", {"aweme_id": aweme_id, "url": url}
+        extracted_url = DouyinService.extract_url(url) or url
+        aweme_id = DouyinService.extract_aweme_id(extracted_url)
+        return "douyin", {"aweme_id": aweme_id, "url": extracted_url}
     return "unknown", {}
 
 

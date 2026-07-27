@@ -40,6 +40,25 @@ class DouyinService:
         return any(host in url for host in ("douyin.com", "iesdouyin.com"))
 
     @staticmethod
+    def extract_url(text: str) -> Optional[str]:
+        """从抖音分享口令/整段文案中提取第一个链接。"""
+        match = re.search(r"https?://[^\s，。；；,]+", text or "")
+        if not match:
+            return None
+        return match.group(0).rstrip("。,.，")
+
+    @staticmethod
+    def extract_share_caption(text: str) -> str:
+        """提取链接前的分享文案，作为平台页面解析失败时的标题/摘要。"""
+        if not text:
+            return ""
+        url = DouyinService.extract_url(text)
+        caption = text.split(url, 1)[0] if url else text
+        caption = re.sub(r"^[\d\.\s/:a-zA-Z@]+", "", caption).strip()
+        caption = caption.replace("复制此链接，打开Dou音搜索，直接观看视频！", "").strip()
+        return _clean_text(caption)
+
+    @staticmethod
     def extract_aweme_id(url: str) -> Optional[str]:
         """从抖音 URL 中提取 aweme/video/note id。"""
         patterns = [
@@ -71,7 +90,10 @@ class DouyinService:
         抖音公开页经常动态渲染或限制匿名访问，因此这里采用多层降级：
         HTML meta / JSON-LD -> 页面 title -> 可保存链接兜底。
         """
-        resolved_url = await self.resolve_short_url(url)
+        share_text = url
+        extracted_url = self.extract_url(url) or url
+        share_caption = self.extract_share_caption(share_text)
+        resolved_url = await self.resolve_short_url(extracted_url)
         aweme_id = self.extract_aweme_id(resolved_url) or self.extract_aweme_id(url)
         try:
             resp = await self.client.get(resolved_url)
@@ -97,8 +119,16 @@ class DouyinService:
             logger.warning(f"抖音页面解析失败 [{url}]: {e}")
             title, description, author = "", "", ""
 
+        if _is_blocked_title(title):
+            title = ""
+            description = ""
+
+        if not title and share_caption:
+            title = _caption_to_title(share_caption)
         if not title:
             title = "抖音灵感素材"
+        if not description and share_caption:
+            description = share_caption
         if not description:
             description = (
                 "该抖音公开链接无法直接解析完整文案，已作为灵感素材保存。"
@@ -199,6 +229,19 @@ def _extract_json_ld(html_text: str) -> Optional[dict]:
 def _clean_text(value: str) -> str:
     value = re.sub(r"\s+", " ", html.unescape(value or "")).strip()
     return value[:500]
+
+
+def _caption_to_title(caption: str) -> str:
+    caption = caption.strip()
+    if not caption:
+        return ""
+    first_tag = re.split(r"#", caption, maxsplit=1)[0].strip()
+    return (first_tag or caption)[:80]
+
+
+def _is_blocked_title(title: str) -> bool:
+    blocked_words = ("验证码", "安全验证", "登录", "访问受限")
+    return any(word in (title or "") for word in blocked_words)
 
 
 def _stable_source_id(url: str) -> str:
