@@ -14,12 +14,14 @@ const PLATFORM_INFO: Record<string, { label: string; color: string; icon: string
   bilibili: { label: "B站视频", color: "#00a1d6", icon: "▶" },
   xiaohongshu: { label: "小红书笔记", color: "#fe2c55", icon: "📕" },
   zhihu: { label: "知乎文章", color: "#0066ff", icon: "Z" },
+  douyin: { label: "抖音灵感", color: "#111827", icon: "♪" },
 };
 
 function detectPlatform(url: string): string | null {
   if (url.includes("bilibili.com") || url.includes("b23.tv")) return "bilibili";
   if (url.includes("xiaohongshu.com") || url.includes("xhslink.com")) return "xiaohongshu";
   if (url.includes("zhihu.com") || url.includes("zhuanlan.zhihu.com")) return "zhihu";
+  if (url.includes("douyin.com") || url.includes("iesdouyin.com")) return "douyin";
   return null;
 }
 
@@ -36,7 +38,7 @@ export default function ImportUrlModal({ open, onClose, onSuccess }: ImportUrlMo
     const trimmed = url.trim();
     if (!trimmed) return;
     if (!platform) {
-      setError("不支持的 URL，请粘贴 B站/知乎/小红书链接");
+      setError("不支持的 URL，请粘贴 B站/知乎/小红书/抖音链接");
       return;
     }
 
@@ -78,7 +80,7 @@ export default function ImportUrlModal({ open, onClose, onSuccess }: ImportUrlMo
         </div>
 
         <div className="modal-body">
-          <p className="import-hint">粘贴 B站/知乎/小红书链接，自动识别并提取知识</p>
+          <p className="import-hint">粘贴 B站/知乎/小红书/抖音链接，自动识别并提取知识</p>
 
           <div className="import-input-row">
             <input
@@ -86,7 +88,7 @@ export default function ImportUrlModal({ open, onClose, onSuccess }: ImportUrlMo
               name="url"
               type="text"
               className="import-url-input"
-              placeholder="https://www.zhihu.com/question/.../answer/..."
+              placeholder="https://v.douyin.com/... 或 https://www.xiaohongshu.com/explore/..."
               value={url}
               onChange={(e) => { setUrl(e.target.value); setError(""); setResult(null); }}
               onKeyDown={(e) => e.key === "Enter" && !loading && handleImport()}

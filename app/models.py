@@ -18,13 +18,13 @@ Base = declarative_base()
 # ==================== SQLAlchemy 模型 ====================
 
 class VideoCache(Base):
-    """内容缓存表（支持多平台：bilibili/xiaohongshu/zhihu）"""
+    """内容缓存表（支持多平台：bilibili/xiaohongshu/zhihu/douyin）"""
     __tablename__ = 'video_cache'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     bvid = Column(String(20), unique=True, index=True, nullable=False)  # 通用source_id: bvid/note_id/answer_id
     cid = Column(Integer, nullable=True)
-    source_type = Column(String(20), default='bilibili')  # bilibili/xiaohongshu/zhihu
+    source_type = Column(String(20), default='bilibili')  # bilibili/xiaohongshu/zhihu/douyin
     source_url = Column(String(1000), nullable=True)  # 原始URL
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=True)
@@ -460,6 +460,7 @@ class SourceType(str, Enum):
     BILIBILI = "bilibili"
     XIAOHONGSHU = "xiaohongshu"
     ZHIHU = "zhihu"
+    DOUYIN = "douyin"
 
 
 class VideoContent(BaseModel):

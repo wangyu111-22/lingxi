@@ -1089,7 +1089,7 @@ async def import_url(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    通过 URL 导入内容（支持 B站/知乎/小红书）
+    通过 URL 导入内容（支持 B站/知乎/小红书/抖音）
 
     自动识别平台 → 抓取内容 → 写入缓存 → 知识抽取 → 写入图谱
     """

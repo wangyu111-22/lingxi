@@ -24,7 +24,7 @@ def identify_platform(url: str) -> tuple[str, dict]:
     识别 URL 对应的平台和关键参数
 
     Returns:
-        (platform, params) — platform: "bilibili"/"xiaohongshu"/"zhihu", params: 解析出的ID等
+        (platform, params) — platform: "bilibili"/"xiaohongshu"/"zhihu"/"douyin", params: 解析出的ID等
     """
     import re
     if "bilibili.com" in url or "b23.tv" in url:
@@ -39,6 +39,10 @@ def identify_platform(url: str) -> tuple[str, dict]:
         from app.services.zhihu import ZhihuService
         parsed = ZhihuService.parse_url(url)
         return "zhihu", parsed or {}
+    elif "douyin.com" in url or "iesdouyin.com" in url:
+        from app.services.douyin import DouyinService
+        aweme_id = DouyinService.extract_aweme_id(url)
+        return "douyin", {"aweme_id": aweme_id, "url": url}
     return "unknown", {}
 
 
@@ -141,6 +145,23 @@ class ContentFetcher:
                 return content, segments
             finally:
                 await zhihu.close()
+
+        elif platform == "douyin":
+            from app.services.douyin import DouyinService
+            douyin = DouyinService()
+            try:
+                post = await douyin.fetch_post(url)
+                segments = douyin.to_segments(post)
+                content = VideoContent(
+                    bvid=post.get("aweme_id", ""),
+                    title=post.get("title", "抖音灵感素材"),
+                    content=post.get("content", ""),
+                    source=ContentSource.SUBTITLE,
+                    source_type=SourceType.DOUYIN,
+                )
+                return content, segments
+            finally:
+                await douyin.close()
 
         else:
             raise ValueError(f"不支持的平台 URL: {url}")

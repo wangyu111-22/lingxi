@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import ZoneShell from "@/components/ZoneShell";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function Icon({ children, size = 18 }: { children: React.ReactNode; size?: number }) {
   return (
@@ -12,15 +12,24 @@ function Icon({ children, size = 18 }: { children: React.ReactNode; size?: numbe
   );
 }
 
-export default function BeautyPage() {
-  const [profile, setProfile] = useState<any>(null);
+interface BeautyProfile {
+  gender?: "male" | "female" | string;
+  height?: number | string;
+  weight?: number | string;
+}
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("zhixi-beauty-profile");
-      if (saved) setProfile(JSON.parse(saved));
-    } catch {}
-  }, []);
+function readBeautyProfile(): BeautyProfile | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const saved = localStorage.getItem("zhixi-beauty-profile");
+    return saved ? JSON.parse(saved) as BeautyProfile : null;
+  } catch {
+    return null;
+  }
+}
+
+export default function BeautyPage() {
+  const [profile] = useState<BeautyProfile | null>(() => readBeautyProfile());
 
   return (
     <ZoneShell
@@ -146,26 +155,31 @@ export default function BeautyPage() {
             </div>
           </Link>
 
-          {/* 抖音灵感卡片（占位） */}
-          <div
+          <Link
+            href="/beauty/inspiration"
             className="glow-border"
             style={{
               padding: "24px",
               borderRadius: "var(--radius-lg)",
               background: "var(--bg-elevated)",
               border: "1px solid var(--border)",
-              opacity: 0.7,
+              textDecoration: "none",
+              color: "inherit",
+              transition: "all 0.3s",
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
           >
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🎵</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>抖音灵感库</div>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>✨</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>潮流灵感库</div>
             <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-              热门穿搭妆容趋势，AI 智能推荐匹配你风格的抖音内容
+              粘贴小红书或抖音公开链接，把真实妆容、穿搭、发型素材接入 AI 推荐上下文
             </div>
-            <div style={{ marginTop: 12, padding: "6px 14px", borderRadius: 20, background: "#f59e0b12", color: "#f59e0b", fontSize: 12, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 4 }}>
-              🎵 浏览灵感
+            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ padding: "6px 12px", borderRadius: 20, background: "#fe2c5512", color: "#fe2c55", fontSize: 12, fontWeight: 700 }}>小红书</span>
+              <span style={{ padding: "6px 12px", borderRadius: 20, background: "#11182712", color: "#111827", fontSize: 12, fontWeight: 700 }}>抖音</span>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* 穿搭预览 */}

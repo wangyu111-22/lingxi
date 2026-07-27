@@ -50,7 +50,7 @@ class MemoryRelationType(str, Enum):
 
 class MemoryEvidence(BaseModel):
     """记忆证据 — 可追溯到原始来源"""
-    source_type: str = "bilibili"           # bilibili / xiaohongshu / zhihu
+    source_type: str = "bilibili"           # bilibili / xiaohongshu / zhihu / douyin
     source_id: str = ""                     # bvid / note_id
     source_title: str = ""
     segment_id: Optional[int] = None
