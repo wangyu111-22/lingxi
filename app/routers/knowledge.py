@@ -1100,6 +1100,7 @@ async def import_url(
     platform, params = identify_platform(url)
     if platform == "unknown":
         raise HTTPException(status_code=400, detail=f"不支持的 URL 格式: {url}")
+    fetch_url = params.get("url") or url
 
     # 创建 ContentFetcher（对 bilibili 需要 BilibiliService）
     if platform == "bilibili":
@@ -1145,7 +1146,7 @@ async def import_url(
             content=content.content,
             content_source=content.source.value,
             source_type=source_type_str,
-            source_url=url,
+            source_url=fetch_url,
             is_processed=True,
             session_id=request.session_id,
         )
@@ -1154,7 +1155,7 @@ async def import_url(
         cache.content = content.content
         cache.content_source = content.source.value
         cache.source_type = source_type_str
-        cache.source_url = url
+        cache.source_url = fetch_url
         cache.is_processed = True
 
     await db.flush()

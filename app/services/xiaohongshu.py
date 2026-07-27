@@ -25,6 +25,28 @@ class XiaohongshuService:
         await self.client.aclose()
 
     @staticmethod
+    def extract_url(text: str) -> Optional[str]:
+        """从小红书分享口令/整段文案中提取第一个链接。"""
+        match = re.search(r"https?://[^\s，。；;,]+", text or "")
+        if not match:
+            return None
+        return match.group(0).rstrip("。,.，")
+
+    @staticmethod
+    def extract_share_caption(text: str) -> str:
+        """提取链接前的分享文案，作为页面受限时的兜底素材。"""
+        if not text:
+            return ""
+        url = XiaohongshuService.extract_url(text)
+        caption = text.split(url, 1)[0] if url else text
+        caption = re.sub(r"^[\d\.\s]+", "", caption).strip()
+        caption = caption.replace("复制本条信息，打开【小红书】App查看精彩内容！", "").strip()
+        caption = caption.replace("复制此链接，打开小红书，直接观看", "").strip()
+        if caption.startswith("【") and "】" in caption:
+            caption = caption[1:caption.find("】")].strip()
+        return _clean_text(caption)
+
+    @staticmethod
     def extract_note_id(url: str) -> Optional[str]:
         """从 URL 中提取笔记 ID"""
         # https://www.xiaohongshu.com/explore/xxxxx
@@ -42,6 +64,8 @@ class XiaohongshuService:
 
     async def resolve_short_url(self, url: str) -> Optional[str]:
         """解析短链接 xhslink.com → 完整 URL"""
+        extracted = self.extract_url(url) or url
+        url = extracted
         if "xhslink.com" not in url:
             return url
         try:
@@ -50,7 +74,14 @@ class XiaohongshuService:
             if "xiaohongshu.com" in location:
                 return location
         except Exception as e:
-            logger.warning(f"小红书短链接解析失败: {e}")
+            logger.warning(f"小红书短链接 HEAD 解析失败: {e}")
+        try:
+            resp = await self.client.get(url)
+            location = str(resp.url)
+            if "xiaohongshu.com" in location:
+                return location
+        except Exception as e:
+            logger.warning(f"小红书短链接 GET 解析失败: {e}")
         return None
 
     async def fetch_note(self, note_id: str) -> Optional[dict]:
@@ -173,5 +204,12 @@ def _extract_meta(html: str, name: str) -> Optional[str]:
     for pat in patterns:
         m = re.search(pat, html, re.IGNORECASE)
         if m:
-            return m.group(1)
+            return _clean_text(m.group(1))
     return None
+
+
+def _clean_text(value: str) -> str:
+    import html as html_lib
+
+    value = re.sub(r"\s+", " ", html_lib.unescape(value or "")).strip()
+    return value[:500]

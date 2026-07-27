@@ -27,14 +27,16 @@ def identify_platform(url: str) -> tuple[str, dict]:
         (platform, params) — platform: "bilibili"/"xiaohongshu"/"zhihu"/"douyin", params: 解析出的ID等
     """
     import re
+    url = _extract_first_url(url) or url
     if "bilibili.com" in url or "b23.tv" in url:
         m = re.search(r'/(BV[a-zA-Z0-9]+)', url)
         bvid = m.group(1) if m else None
         return "bilibili", {"bvid": bvid}
     elif "xiaohongshu.com" in url or "xhslink.com" in url:
         from app.services.xiaohongshu import XiaohongshuService
-        note_id = XiaohongshuService.extract_note_id(url)
-        return "xiaohongshu", {"note_id": note_id, "url": url}
+        extracted_url = XiaohongshuService.extract_url(url) or url
+        note_id = XiaohongshuService.extract_note_id(extracted_url)
+        return "xiaohongshu", {"note_id": note_id, "url": extracted_url}
     elif "zhihu.com" in url or "zhuanlan.zhihu.com" in url:
         from app.services.zhihu import ZhihuService
         parsed = ZhihuService.parse_url(url)
@@ -45,6 +47,15 @@ def identify_platform(url: str) -> tuple[str, dict]:
         aweme_id = DouyinService.extract_aweme_id(extracted_url)
         return "douyin", {"aweme_id": aweme_id, "url": extracted_url}
     return "unknown", {}
+
+
+def _extract_first_url(text: str) -> Optional[str]:
+    import re
+
+    match = re.search(r"https?://[^\s，。；;,]+", text or "")
+    if not match:
+        return None
+    return match.group(0).rstrip("。,.，")
 
 
 class ContentFetcher:
@@ -72,6 +83,7 @@ class ContentFetcher:
             (VideoContent, segments_list)
         """
         platform, params = identify_platform(url)
+        normalized_url = params.get("url") or _extract_first_url(url) or url
 
         if platform == "bilibili":
             bvid = params.get("bvid")
@@ -86,16 +98,28 @@ class ContentFetcher:
             xhs = XiaohongshuService()
             try:
                 note_id = params.get("note_id")
-                if not note_id and "xhslink.com" in url:
-                    resolved = await xhs.resolve_short_url(url)
+                if not note_id and "xhslink.com" in normalized_url:
+                    resolved = await xhs.resolve_short_url(normalized_url)
                     if resolved:
                         note_id = XiaohongshuService.extract_note_id(resolved)
                 if not note_id:
-                    raise ValueError(f"无法从 URL 解析小红书 note_id: {url}")
+                    fallback_id = _stable_source_id(normalized_url, "xhs")
+                    caption = XiaohongshuService.extract_share_caption(url) or "小红书灵感素材"
+                    note = _fallback_social_note(fallback_id, caption, normalized_url, "小红书")
+                    segments = xhs.to_segments(note)
+                    content = VideoContent(
+                        bvid=fallback_id,
+                        title=note.get("title", ""),
+                        content=note.get("content", ""),
+                        source=ContentSource.BASIC_INFO,
+                        source_type=SourceType.XIAOHONGSHU,
+                    )
+                    return content, segments
 
                 note = await xhs.fetch_note(note_id)
                 if not note:
-                    raise ValueError(f"获取小红书笔记失败: {note_id}")
+                    caption = XiaohongshuService.extract_share_caption(url) or "小红书灵感素材"
+                    note = _fallback_social_note(note_id, caption, normalized_url, "小红书")
 
                 segments = xhs.to_segments(note)
                 content = VideoContent(
@@ -575,4 +599,28 @@ class ContentFetcher:
                     os.remove(file_path)
             except Exception:
                 logger.debug(f"[{bvid}] 清理临时音频文件失败: {file_path}")
+
+
+def _fallback_social_note(source_id: str, caption: str, url: str, platform_name: str) -> dict:
+    title = caption.split("#", 1)[0].strip() or f"{platform_name}灵感素材"
+    content = "\n\n".join([
+        f"标题：{title}",
+        f"分享文案：{caption}",
+        f"链接：{url}",
+        f"用途：作为美美区域的真实平台灵感素材，参与妆容、穿搭、发型和拍照建议生成。",
+    ])
+    return {
+        "note_id": source_id,
+        "title": title[:80],
+        "content": content,
+        "author": "",
+        "images": [],
+        "publish_time": None,
+    }
+
+
+def _stable_source_id(url: str, prefix: str) -> str:
+    import hashlib
+
+    return f"{prefix}_" + hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
 

@@ -17,6 +17,11 @@ function detectPlatform(url: string) {
   return "";
 }
 
+function extractSharedUrl(text: string) {
+  const match = text.match(/https?:\/\/[^\s，。；;,]+/);
+  return match?.[0]?.replace(/[。,.，]+$/, "") || text.trim();
+}
+
 export default function BeautyInspirationPage() {
   const { sessionId } = useAuthSession();
   const [url, setUrl] = useState("");
@@ -25,11 +30,12 @@ export default function BeautyInspirationPage() {
   const [error, setError] = useState("");
   const [results, setResults] = useState<ImportUrlResponse[]>([]);
 
-  const platform = useMemo(() => detectPlatform(url.trim()), [url]);
+  const platform = useMemo(() => detectPlatform(extractSharedUrl(url)), [url]);
   const platformInfo = platforms.find((item) => item.key === platform);
 
   async function importInspiration() {
     const trimmed = url.trim();
+    const sharedUrl = extractSharedUrl(trimmed);
     if (!sessionId) {
       setError("请先登录后再导入灵感素材。");
       return;
@@ -41,7 +47,7 @@ export default function BeautyInspirationPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await knowledgeApi.importUrl(trimmed, sessionId);
+      const response = await knowledgeApi.importUrl(trimmed.includes("douyin.com") || trimmed.includes("xhslink.com") ? trimmed : sharedUrl, sessionId);
       setResults((prev) => [response, ...prev.filter((item) => item.source_id !== response.source_id)]);
       setUrl("");
     } catch (e: unknown) {

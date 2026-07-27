@@ -18,11 +18,17 @@ const PLATFORM_INFO: Record<string, { label: string; color: string; icon: string
 };
 
 function detectPlatform(url: string): string | null {
+  url = extractSharedUrl(url);
   if (url.includes("bilibili.com") || url.includes("b23.tv")) return "bilibili";
   if (url.includes("xiaohongshu.com") || url.includes("xhslink.com")) return "xiaohongshu";
   if (url.includes("zhihu.com") || url.includes("zhuanlan.zhihu.com")) return "zhihu";
   if (url.includes("douyin.com") || url.includes("iesdouyin.com")) return "douyin";
   return null;
+}
+
+function extractSharedUrl(text: string): string {
+  const match = text.match(/https?:\/\/[^\s，。；;,]+/);
+  return match?.[0]?.replace(/[。,.，]+$/, "") || text.trim();
 }
 
 export default function ImportUrlModal({ open, onClose, onSuccess }: ImportUrlModalProps) {
