@@ -3,7 +3,9 @@
 """
 from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import JSONResponse
-import base64
+
+from app.services.beauty_recommendations import build_beauty_recommendations
+from app.services.beauty_vision import analyze_beauty_image
 
 router = APIRouter(prefix="/face", tags=["面部分析"])
 
@@ -12,12 +14,10 @@ router = APIRouter(prefix="/face", tags=["面部分析"])
 async def analyze_face(file: UploadFile = File(...)):
     """上传照片，AI 分析面部特征并返回妆容推荐"""
     try:
-        # 读取图片并转 base64
         contents = await file.read()
-        b64 = base64.b64encode(contents).decode("utf-8")
+        if not contents:
+            return JSONResponse({"success": False, "error": "照片文件为空"}, status_code=400)
 
-        # 模拟面部数据分析（后续可接入真实 CV 模型）
-        # 基于图片大小和比例做简单推断
         from PIL import Image
         import io
         img = Image.open(io.BytesIO(contents))
@@ -34,11 +34,20 @@ async def analyze_face(file: UploadFile = File(...)):
         else:
             face_shape = "菱形脸"
 
+        ai_analysis = await analyze_beauty_image(
+            file.filename or "makeup-upload.jpg",
+            contents,
+            "妆容分析：识别脸型、眼型、肤色、五官比例，并给出妆容适配建议",
+            file.content_type,
+        )
+        platform_recommendations = build_beauty_recommendations(ai_analysis, f"{face_shape} 妆容分析")
+
         # 生成分析结果
         return {
             "success": True,
             "image_size": f"{w}x{h}",
             "ratio": round(ratio, 2),
+            "ai_analysis": ai_analysis,
             "analysis": {
                 "face_shape": face_shape,
                 "face_width": w,
@@ -56,6 +65,7 @@ async def analyze_face(file: UploadFile = File(...)):
                 {"name": "轻欧美妆", "suitable": face_shape in ["长脸型", "菱形脸"], "style": "修容轮廓 + 猫眼眼线 + 哑光唇"},
                 {"name": "日杂透明妆", "suitable": True, "style": "清透底妆 + 柔和眼影 + 裸色唇蜜"},
             ],
+            "platform_recommendations": platform_recommendations,
         }
     except Exception as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
