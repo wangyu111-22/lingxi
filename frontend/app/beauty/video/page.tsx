@@ -37,6 +37,16 @@ export default function BeautyCameraPage() {
 
   useEffect(() => () => stopCamera(), []);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!cameraOn || !video || !stream) return;
+    video.srcObject = stream;
+    void video.play().catch(() => {
+      setError("摄像头已打开，但浏览器阻止了视频播放，请再点一次打开摄像头或检查权限。");
+    });
+  }, [cameraOn]);
+
   async function startCamera() {
     setError("");
     try {
@@ -45,10 +55,6 @@ export default function BeautyCameraPage() {
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
       setCameraOn(true);
     } catch {
       setError("无法打开摄像头，请检查浏览器权限，或改用照片上传。");
@@ -58,6 +64,7 @@ export default function BeautyCameraPage() {
   function stopCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
     setCameraOn(false);
   }
 
@@ -127,9 +134,9 @@ export default function BeautyCameraPage() {
             )}
           </div>
 
-          <div style={{ aspectRatio: "16/10", borderRadius: 16, background: "var(--bg-sunken)", overflow: "hidden", display: "grid", placeItems: "center", marginBottom: 12, border: "1px solid var(--border)" }}>
+          <div style={{ aspectRatio: "16/10", minHeight: 260, borderRadius: 16, background: "var(--bg-sunken)", overflow: "hidden", display: "grid", placeItems: "center", marginBottom: 12, border: "1px solid var(--border)", position: "relative" }}>
             {cameraOn ? (
-              <video ref={videoRef} playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
+              <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", background: "#111827" }} />
             ) : photoUrl ? (
               <img src={photoUrl} alt="已选择的照片" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
