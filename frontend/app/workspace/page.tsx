@@ -146,38 +146,69 @@ export default function WorkspacePage() {
   const formatDuration = (d?:number) => { if(!d)return"";const m=Math.floor(d/60);return`${m}:${String(d%60).padStart(2,"0")}`; };
   const tabs:{key:TabKey;label:string}[]=[{key:"video",label:"视频"},{key:"map",label:"知识图"},{key:"claims",label:"论断"}];
   const selectedVideo=videos.find(v=>v.bvid===selectedBvid);
+  const readiness = Math.min(100, Math.round((sourceSummary.knowledgeNodes / Math.max(sourceSummary.compiled * 8, 1)) * 100));
+  const nextAction = !isLoggedIn
+    ? "先登录账号或使用演示账号进入学习空间"
+    : videos.length === 0
+      ? "先同步或导入视频，建立你的学习素材库"
+      : sourceSummary.knowledgeNodes === 0
+        ? "选择一个视频开始编译，生成知识树"
+        : "进入知识树、复习中心或学习路径继续推进";
 
   const onDemoLogin = async () => { setDemoLoading(true); try { const r = await authApi.loginAsDemo(); setAuthSession(r.session_id, r.user_info.uname); setIsLoggedIn(true); setUserName(r.user_info.uname); window.location.reload(); } catch(e:any){} setDemoLoading(false); };
 
   return (
     <LearnPageShell title="知识工作台">
+      <div className="learning-dashboard">
       {/* ===== B站登录提示 ===== */}
       {!isLoggedIn && (
-        <div style={{ marginBottom:20,padding:"20px 24px",borderRadius:18,background:"linear-gradient(135deg,#e0e7ff,#fce7f3)",border:"1px solid #c7d2fe",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12 }}>
+        <div className="login-notice">
           <div>
-            <div style={{ fontSize:15,fontWeight:700,color:"#4338ca" }}>📺 登录B站账号</div>
-            <div style={{ fontSize:12,color:"#6366f1",marginTop:4 }}>同步收藏夹，AI编译视频知识库</div>
+            <div className="notice-title">进入你的专属学习空间</div>
+            <div className="notice-desc">登录后会恢复视频编译、知识树、记忆节点和复习历史。</div>
           </div>
-          <div style={{ display:"flex",gap:8 }}>
-            <Link href="/login" style={{ padding:"10px 24px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,textDecoration:"none" }}>🔑 登录 / 注册</Link>
-            <button onClick={onDemoLogin} disabled={demoLoading} style={{ padding:"10px 24px",borderRadius:14,border:"1px solid #c7d2fe",background:"#fff",color:"#6366f1",cursor:"pointer",fontSize:13,fontWeight:600 }}>{demoLoading?"...":"🎭 演示账号"}</button>
+          <div className="notice-actions">
+            <Link href="/login">登录 / 注册</Link>
+            <button onClick={onDemoLogin} disabled={demoLoading}>{demoLoading?"进入中...":"演示账号"}</button>
           </div>
         </div>
       )}
 
-      {/* ===== 学习功能面板 ===== */}
-      <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",gap:10,marginBottom:20 }}>
-        {FEATURES.map(f=><Link key={f.href} href={f.href} style={{ textDecoration:"none",color:"inherit",padding:"16px",borderRadius:16,background:"#fff",border:"1px solid #f1f5f9",display:"flex",alignItems:"center",gap:12,transition:"all 0.2s",boxShadow:"0 2px 8px rgba(0,0,0,0.03)" }}>
-          <div style={{ width:42,height:42,borderRadius:14,background:`${f.color}12`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0 }}>{f.icon}</div>
-          <div style={{ minWidth:0 }}><div style={{ fontSize:14,fontWeight:700,color:"#1e293b" }}>{f.title}</div><div style={{ fontSize:11,color:"#94a3b8",marginTop:2 }}>{f.desc}</div></div>
+      <section className="learning-hero">
+        <div className="hero-copy">
+          <span>Learning Workspace</span>
+          <h2>{userName ? `${userName} 的学习分区` : "学习分区"}</h2>
+          <p>{nextAction}</p>
+        </div>
+        <div className="hero-stats">
+          <div><strong>{sourceSummary.compiled}</strong><span>已编译</span></div>
+          <div><strong>{sourceSummary.knowledgeNodes}</strong><span>知识节点</span></div>
+          <div><strong>{sourceSummary.memories}</strong><span>记忆节点</span></div>
+          <div><strong>{readiness}%</strong><span>知识密度</span></div>
+        </div>
+      </section>
+
+      <section className="feature-rail" aria-label="学习功能入口">
+        {FEATURES.map(f=><Link key={f.href} href={f.href} className="feature-card" style={{ ["--feature-color" as string]: f.color }}>
+          <span className="feature-icon">{f.icon}</span>
+          <span>
+            <strong>{f.title}</strong>
+            <small>{f.desc}</small>
+          </span>
         </Link>)}
-      </div>
+      </section>
 
       {/* ===== 视频编译区 ===== */}
-      <div className="workspace-layout">
+      <div className="workspace-layout learning-workbench">
         <div className="workspace-sidebar">
-          <div style={{ fontSize:12,fontWeight:600,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:1,marginBottom:12,padding:"0 4px" }}>视频列表</div>
-          {videos.length>0&&<div style={{ marginBottom:12,padding:"0 4px" }}><button className="compile-btn" onClick={handleBatchCompile} disabled={batchBuilding} style={{ width:"100%",justifyContent:"center",fontSize:12 }}>{batchBuilding?`批量编译... ${Math.round(batchProgress*100)}%`:"🚀 批量编译全部视频"}</button>{batchBuilding&&<><div className="progress" style={{ marginTop:6 }}><div className="progress-bar" style={{ width:`${batchProgress*100}%` }}/></div><p style={{ fontSize:11,color:"var(--text-tertiary)",marginTop:4,textAlign:"center" }}>{batchMessage}</p></>}</div>}
+          <div className="sidebar-head">
+            <div>
+              <span>素材库</span>
+              <strong>视频列表</strong>
+            </div>
+            <em>{videos.length}</em>
+          </div>
+          {videos.length>0&&<div className="batch-box"><button className="compile-btn" onClick={handleBatchCompile} disabled={batchBuilding}>{batchBuilding?`批量编译 ${Math.round(batchProgress*100)}%`:"批量编译全部"}</button>{batchBuilding&&<><div className="progress" style={{ marginTop:8 }}><div className="progress-bar" style={{ width:`${batchProgress*100}%` }}/></div><p>{batchMessage}</p></>}</div>}
           {loadingVideos?<div style={{ textAlign:"center",padding:20,color:"var(--text-tertiary)",fontSize:13 }}>加载中...</div>
           :videos.length===0?<div style={{ textAlign:"center",padding:20,color:"var(--text-tertiary)",fontSize:13 }}>
             <p>暂无视频</p><p style={{ marginTop:4,fontSize:12 }}>登录B站账号同步收藏夹后开始</p>
@@ -205,12 +236,18 @@ export default function WorkspacePage() {
         </div>
 
         <div className="workspace-main">
-          <div className="workspace-tabs">{tabs.map(tab=><button key={tab.key} className={`workspace-tab ${activeTab===tab.key?"active":""}`} onClick={()=>setActiveTab(tab.key)}>{tab.label}</button>)}</div>
+          <div className="workspace-topbar">
+            <div>
+              <span>当前任务</span>
+              <strong>{selectedVideo?.title || "还没有选择视频"}</strong>
+            </div>
+            <div className="workspace-tabs">{tabs.map(tab=><button key={tab.key} className={`workspace-tab ${activeTab===tab.key?"active":""}`} onClick={()=>setActiveTab(tab.key)}>{tab.label}</button>)}</div>
+          </div>
           <div className="workspace-content">
             {loadingResult?<div className="center-placeholder"><div className="placeholder-spinner"/><span style={{ fontSize:13,color:"var(--text-tertiary)" }}>加载编译结果...</span></div>
-            :!selectedBvid?<div className="center-placeholder"><h3 className="placeholder-title">选择一个视频</h3><p className="placeholder-desc">在左侧视频列表中选择视频，编译后查看知识结构</p></div>
+            :!selectedBvid?<div className="center-placeholder"><h3 className="placeholder-title">选择一个视频</h3><p className="placeholder-desc">在左侧视频列表中选择视频，编译后查看知识结构</p><div className="empty-actions"><Link href="/tree">查看知识树</Link><Link href="/organizer">整理收藏</Link></div></div>
             :activeTab==="video"?<div style={{ padding:16 }}><VideoPlayer key={`${selectedBvid}_${selectedCid||1}`} bvid={selectedBvid} title={selectedVideo?.title} cid={selectedCid}/></div>
-            :!compileResult||((compileResult.stats?.concept_count??0)===0)?<div className="center-placeholder"><h3 className="placeholder-title">视频尚未编译</h3><p className="placeholder-desc">点击左侧"编译此视频"</p></div>
+            :!compileResult||((compileResult.stats?.concept_count??0)===0)?<div className="center-placeholder"><h3 className="placeholder-title">视频尚未编译</h3><p className="placeholder-desc">点击左侧“编译此视频”，AI 会提取概念、论断和知识关系。</p></div>
             :activeTab==="map"?<KnowledgeMap compileResult={compileResult}/>
             :activeTab==="claims"?<ConceptClaimList concepts={compileResult.concepts}/>:null}
           </div>
@@ -224,6 +261,214 @@ export default function WorkspacePage() {
 
       {compileSuccess&&<div style={{ position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.25)" }} onClick={()=>setCompileSuccess("")}><div style={{ background:"#10b981",color:"#fff",padding:"16px 40px",borderRadius:14,fontSize:14,fontWeight:600 }}>✅ {compileSuccess}</div></div>}
       {compileError&&<div style={{ background:"#fef2f2",border:"1px solid #fecaca",color:"#dc2626",padding:"10px 16px",borderRadius:8,margin:"8px 0",fontSize:13,display:"flex",justifyContent:"space-between" }}><span>⚠ {compileError}</span><button onClick={()=>setCompileError("")} style={{ background:"none",border:"none",cursor:"pointer",color:"#dc2626",fontSize:16 }}>×</button></div>}
+      </div>
+      <style jsx>{`
+        .learning-dashboard { display: grid; gap: 18px; padding-bottom: 18px; }
+        .login-notice {
+          padding: 18px 20px;
+          border-radius: 18px;
+          background: linear-gradient(135deg, rgba(224,231,255,.9), rgba(252,231,243,.82));
+          border: 1px solid #c7d2fe;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .notice-title { font-size: 15px; font-weight: 900; color: #4338ca; }
+        .notice-desc { margin-top: 4px; font-size: 12px; color: #6366f1; }
+        .notice-actions { display: flex; gap: 8px; }
+        .notice-actions a, .notice-actions button {
+          padding: 10px 18px;
+          border-radius: 14px;
+          font-size: 13px;
+          font-weight: 900;
+          text-decoration: none;
+          cursor: pointer;
+        }
+        .notice-actions a { border: 0; color: #fff; background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+        .notice-actions button { border: 1px solid #c7d2fe; background: #fff; color: #6366f1; }
+        .learning-hero {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(360px, .8fr);
+          gap: 16px;
+          align-items: stretch;
+          padding: 24px;
+          border-radius: 22px;
+          background:
+            linear-gradient(135deg, rgba(5,150,105,.10), rgba(6,182,212,.07) 48%, rgba(245,158,11,.08)),
+            var(--bg-elevated);
+          border: 1px solid rgba(5,150,105,.16);
+        }
+        .hero-copy span, .sidebar-head span, .workspace-topbar span {
+          color: #059669;
+          font-size: 12px;
+          font-weight: 900;
+          letter-spacing: .5px;
+        }
+        .hero-copy h2 { margin: 8px 0; color: var(--ink); font-size: 28px; line-height: 1.18; }
+        .hero-copy p { margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 1.8; }
+        .hero-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 10px;
+        }
+        .hero-stats div {
+          border-radius: 17px;
+          background: rgba(255,255,255,.72);
+          border: 1px solid rgba(255,255,255,.9);
+          display: grid;
+          place-content: center;
+          text-align: center;
+          gap: 4px;
+          min-height: 92px;
+        }
+        .hero-stats strong { color: #059669; font-size: 26px; }
+        .hero-stats span { color: var(--text-secondary); font-size: 12px; font-weight: 800; }
+        .feature-rail {
+          display: grid;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .feature-card {
+          min-height: 118px;
+          padding: 14px;
+          border-radius: 18px;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border);
+          color: inherit;
+          text-decoration: none;
+          display: grid;
+          align-content: space-between;
+          transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+        }
+        .feature-card:hover {
+          transform: translateY(-2px);
+          border-color: color-mix(in srgb, var(--feature-color) 32%, var(--border));
+          box-shadow: 0 16px 34px rgba(15,23,42,.08);
+        }
+        .feature-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 14px;
+          display: grid;
+          place-items: center;
+          background: color-mix(in srgb, var(--feature-color) 12%, transparent);
+          font-size: 21px;
+        }
+        .feature-card strong { display: block; color: var(--ink); font-size: 14px; margin-top: 12px; }
+        .feature-card small { display: block; color: var(--text-tertiary); font-size: 11px; line-height: 1.45; margin-top: 4px; }
+        .learning-workbench {
+          height: min(720px, calc(100vh - 220px));
+          min-height: 560px;
+          border: 1px solid var(--border);
+          border-radius: 22px;
+          overflow: hidden;
+          background: var(--bg-elevated);
+          box-shadow: 0 18px 50px rgba(15,23,42,.08);
+        }
+        .learning-workbench :global(.workspace-sidebar) {
+          width: 292px;
+          min-width: 292px;
+          padding: 14px;
+          background: color-mix(in srgb, var(--bg-sunken) 70%, var(--bg-elevated));
+        }
+        .sidebar-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          padding: 2px 2px 0;
+        }
+        .sidebar-head strong { display: block; margin-top: 3px; color: var(--ink); font-size: 16px; }
+        .sidebar-head em {
+          font-style: normal;
+          width: 34px;
+          height: 34px;
+          border-radius: 12px;
+          display: grid;
+          place-items: center;
+          background: rgba(5,150,105,.1);
+          color: #059669;
+          font-weight: 900;
+          font-size: 13px;
+        }
+        .batch-box {
+          margin-bottom: 12px;
+          padding: 12px;
+          border-radius: 16px;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border);
+        }
+        .batch-box p { margin: 6px 0 0; color: var(--text-tertiary); font-size: 11px; text-align: center; }
+        .learning-workbench :global(.video-sidebar-item) {
+          border-radius: 14px;
+          margin-bottom: 6px;
+          border: 1px solid transparent;
+        }
+        .learning-workbench :global(.video-sidebar-item:hover) { border-color: var(--border); background: var(--bg-elevated); }
+        .learning-workbench :global(.video-sidebar-item.selected) {
+          border-left: 0;
+          border-color: rgba(5,150,105,.22);
+          background: rgba(5,150,105,.09);
+        }
+        .workspace-topbar {
+          min-height: 64px;
+          padding: 12px 16px 0;
+          border-bottom: 1px solid var(--border);
+          display: flex;
+          align-items: end;
+          justify-content: space-between;
+          gap: 14px;
+        }
+        .workspace-topbar strong {
+          display: block;
+          max-width: 560px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: var(--ink);
+          font-size: 15px;
+          margin-top: 4px;
+        }
+        .workspace-topbar :global(.workspace-tabs) { border-bottom: 0; padding: 0; }
+        .workspace-topbar :global(.workspace-tab) {
+          border: 1px solid var(--border);
+          border-bottom: 0;
+          border-radius: 12px 12px 0 0;
+          background: var(--bg-sunken);
+          margin-left: 6px;
+          padding: 9px 15px;
+        }
+        .workspace-topbar :global(.workspace-tab.active) {
+          background: var(--bg-elevated);
+          color: #059669;
+          border-color: rgba(5,150,105,.24);
+        }
+        .empty-actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+        .empty-actions a {
+          padding: 9px 14px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          color: #059669;
+          font-size: 13px;
+          font-weight: 800;
+          text-decoration: none;
+          background: var(--bg-elevated);
+        }
+        @media (max-width: 1180px) {
+          .feature-rail { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+          .learning-hero { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 860px) {
+          .hero-stats { grid-template-columns: repeat(2, 1fr); }
+          .feature-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .learning-workbench { height: auto; min-height: 0; flex-direction: column; }
+          .learning-workbench :global(.workspace-sidebar) { width: 100%; min-width: 0; max-height: 320px; border-right: 0; border-bottom: 1px solid var(--border); }
+          .workspace-topbar { align-items: stretch; flex-direction: column; padding: 14px 14px 0; }
+          .workspace-topbar :global(.workspace-tabs) { overflow-x: auto; }
+        }
+      `}</style>
     </LearnPageShell>
   );
 }
