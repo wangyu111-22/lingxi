@@ -10,8 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import BeautyVideoAnalysis
 from app.routers.auth import get_session
-from app.services.beauty_recommendations import build_beauty_recommendations
+from app.services.beauty_recommendations import build_beauty_recommendations, build_outfit_recommendations
 from app.services.beauty_vision import analyze_beauty_image, get_vision_status
+from app.services.llm_provider import create_async_client, get_model_name
 from app.utils import resolve_owner_mid
 
 router = APIRouter(prefix="/beauty", tags=["美美区域"])
@@ -43,6 +44,46 @@ async def vision_status():
     return get_vision_status()
 
 
+async def _generate_outfit_advice(context: str, image_analysis: dict[str, str] | None = None) -> str:
+    image_text = ""
+    if image_analysis:
+        image_text = "\n".join([
+            image_analysis.get("scene_summary", ""),
+            image_analysis.get("movement_summary", ""),
+            image_analysis.get("style_advice", ""),
+        ])
+    prompt = (
+        "你是灵犀美美区域的穿搭 Agent。请根据用户想法、天气、风格偏好、个人信息和全身照分析，"
+        "给出具体、温和、可执行的穿搭建议。不要评价身材好坏，不制造焦虑。"
+        "必须尊重用户明确提供的性别、年龄、校园/通勤等场景和穿衣边界；用户写男生时不要默认推荐裙装、高跟鞋等女性化单品，"
+        "用户写女生时也不要默认刻板化，用户未说明时优先使用中性单品。"
+        "输出 4 段：整体风格、单品组合、颜色/比例、抖音小红书搜索关键词。每段不超过 80 字。\n\n"
+        f"用户上下文：{context}\n\n"
+        f"全身照/图片分析：{image_text or '未上传全身照'}"
+    )
+    try:
+        client = create_async_client(timeout=60)
+        resp = await client.chat.completions.create(
+            model=get_model_name(),
+            messages=[
+                {"role": "system", "content": "你是专业、克制、实用的中文穿搭顾问。"},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.45,
+        )
+        text = (resp.choices[0].message.content or "").strip()
+        if text:
+            return text[:1000]
+    except Exception:
+        pass
+    return (
+        "整体风格：建议选择干净、舒适、适合当前天气的日常穿搭。\n"
+        "单品组合：上装保持简洁，下装选择高腰或直筒版型，鞋子以轻便为主。\n"
+        "颜色/比例：全身主色不超过三种，用上短下长或同色系拉长比例。\n"
+        "搜索关键词：日常穿搭 显高显瘦 OOTD 通勤校园。"
+    )
+
+
 @router.post("/capture/analyze")
 async def analyze_capture(
     session_id: str = Form(...),
@@ -72,6 +113,41 @@ async def analyze_capture(
     await db.refresh(item)
     recommendations = build_beauty_recommendations(analysis, scene)
     return {"success": True, "analysis": _item_to_dict(item, recommendations)}
+
+
+@router.post("/outfit/analyze")
+async def analyze_outfit(
+    idea: str = Form(""),
+    profile: str = Form(""),
+    weather: str = Form(""),
+    styles: str = Form(""),
+    file: UploadFile | None = File(None),
+):
+    content_parts = [
+        f"用户想法：{idea.strip() or '未填写'}",
+        f"个人信息：{profile.strip() or '未填写'}",
+        f"天气：{weather.strip() or '未知'}",
+        f"风格偏好：{styles.strip() or '未选择'}",
+    ]
+    context = "\n".join(content_parts)
+    image_analysis = None
+    if file is not None:
+        content = await file.read()
+        if content:
+            image_analysis = await analyze_beauty_image(
+                file.filename or "outfit-photo.jpg",
+                content,
+                f"全身照穿搭分析。{context}",
+                file.content_type,
+            )
+    outfit_advice = await _generate_outfit_advice(context, image_analysis)
+    recommendation_context = "\n".join([context, outfit_advice, image_analysis.get("style_advice", "") if image_analysis else ""])
+    return {
+        "success": True,
+        "outfit_advice": outfit_advice,
+        "image_analysis": image_analysis,
+        "platform_recommendations": build_outfit_recommendations(recommendation_context),
+    }
 
 
 @router.post("/video/analyze")

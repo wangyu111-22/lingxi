@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ZoneShell from "@/components/ZoneShell";
 import Link from "next/link";
 import { API_BASE_URL } from "@/lib/api";
@@ -20,6 +20,26 @@ interface OutfitItem {
   items: string[];
   color: string;
   tempRange: string;
+}
+
+interface PlatformRecommendation {
+  platform: string;
+  label: string;
+  title: string;
+  reason: string;
+  url: string;
+}
+
+interface OutfitAgentResult {
+  success: boolean;
+  outfit_advice: string;
+  image_analysis?: {
+    scene_summary?: string;
+    movement_summary?: string;
+    style_advice?: string;
+  } | null;
+  platform_recommendations: PlatformRecommendation[];
+  error?: string;
 }
 
 function generateOutfits(weather: WeatherData | null): OutfitItem[] {
@@ -180,6 +200,14 @@ export default function OutfitPage() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [city] = useState("北京");
+  const [idea, setIdea] = useState("今天想要自然、干净、适合出门的穿搭");
+  const [profile, setProfile] = useState("");
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [agentError, setAgentError] = useState("");
+  const [agentResult, setAgentResult] = useState<OutfitAgentResult | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchWeather = async () => {
@@ -202,6 +230,36 @@ export default function OutfitPage() {
 
   const toggleStyle = (s: string) => {
     setActiveStyles((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+  };
+
+  const choosePhoto = (file: File | null) => {
+    if (!file) return;
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setAgentResult(null);
+    setAgentError("");
+  };
+
+  const askOutfitAgent = async () => {
+    setAgentLoading(true);
+    setAgentError("");
+    try {
+      const form = new FormData();
+      form.append("idea", idea);
+      form.append("profile", profile);
+      form.append("weather", temp != null ? `${city} ${temp}°C ${conditionText}` : `${city} 天气未知`);
+      form.append("styles", activeStyles.join("、"));
+      if (photoFile) form.append("file", photoFile, photoFile.name);
+      const resp = await fetch(`${API_BASE_URL}/beauty/outfit/analyze`, { method: "POST", body: form });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) throw new Error(data.detail || data.error || "穿搭 Agent 分析失败");
+      setAgentResult(data);
+    } catch (e: unknown) {
+      setAgentError(e instanceof Error ? e.message : "穿搭 Agent 暂时不可用");
+    } finally {
+      setAgentLoading(false);
+    }
   };
 
   const temp = weatherData?.current.temp;
@@ -349,6 +407,102 @@ export default function OutfitPage() {
           >
             📝 完善身体数据获取更精准推荐 →
           </Link>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(300px, 0.95fr) minmax(320px, 1.05fr)",
+            gap: 18,
+            marginBottom: 24,
+            alignItems: "stretch",
+          }}
+        >
+          <section className="glow-border" style={{ padding: 20, borderRadius: "var(--radius-lg)", background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#ec4899,#8b5cf6)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 900 }}>AI</div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>穿搭 Agent 对话框</div>
+                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>想法 + 个人信息 + 全身照 + 天气</div>
+              </div>
+            </div>
+
+            <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "var(--ink)", marginBottom: 6 }}>你的想法</label>
+            <textarea
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              rows={4}
+              placeholder="例如：想要校园感、显高一点、适合今天出门拍照，不要太夸张"
+              style={{ width: "100%", resize: "vertical", padding: "11px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-sunken)", color: "var(--ink)", lineHeight: 1.6, marginBottom: 12 }}
+            />
+
+            <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "var(--ink)", marginBottom: 6 }}>个人信息 / 身形备注</label>
+            <input
+              value={profile}
+              onChange={(e) => setProfile(e.target.value)}
+              placeholder="例如：170cm，偏瘦，肩窄，想显精神"
+              style={{ width: "100%", padding: "11px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-sunken)", color: "var(--ink)", marginBottom: 12 }}
+            />
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "center", marginBottom: 12 }}>
+              <button onClick={() => fileRef.current?.click()} style={{ padding: "11px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-sunken)", color: "var(--ink)", fontWeight: 800, cursor: "pointer" }}>
+                {photoFile ? "已选择全身照，可重新选择" : "上传全身照辅助分析"}
+              </button>
+              {photoPreview && (
+                <img src={photoPreview} alt="已上传的穿搭参考照片" style={{ width: 54, height: 54, objectFit: "cover", borderRadius: 12, border: "1px solid var(--border)" }} />
+              )}
+              <input ref={fileRef} type="file" accept="image/*" onChange={(e) => choosePhoto(e.target.files?.[0] || null)} style={{ display: "none" }} />
+            </div>
+
+            <button onClick={askOutfitAgent} disabled={agentLoading || (!idea.trim() && !photoFile)} style={{ width: "100%", padding: "12px 16px", borderRadius: 14, border: "none", background: agentLoading ? "#9ca3af" : "linear-gradient(135deg,#ec4899,#8b5cf6)", color: "#fff", fontWeight: 900, cursor: agentLoading ? "wait" : "pointer" }}>
+              {agentLoading ? "AI 正在生成穿搭..." : "让 AI 重新推荐穿搭"}
+            </button>
+            {agentError && <p style={{ color: "#ef4444", fontSize: 12, margin: "10px 0 0" }}>{agentError}</p>}
+          </section>
+
+          <section className="glow-border" style={{ padding: 20, borderRadius: "var(--radius-lg)", background: "var(--bg-elevated)", border: "1px solid var(--border)", minHeight: 320 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#06b6d4,#ec4899)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 900 }}>搭</div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>小灵穿搭建议</div>
+                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>根据你刚才的想法实时生成</div>
+              </div>
+            </div>
+            {!agentResult && !agentLoading ? (
+              <div style={{ height: 230, display: "grid", placeItems: "center", textAlign: "center", color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.8 }}>
+                <div>
+                  <div style={{ fontSize: 38, marginBottom: 8 }}>🧥</div>
+                  填写你的出门场景、身形备注，或上传全身照，AI 会给出穿搭方案和小红书/抖音参考入口。
+                </div>
+              </div>
+            ) : agentLoading ? (
+              <div style={{ height: 230, display: "grid", placeItems: "center", color: "var(--text-secondary)", fontSize: 13 }}>正在结合天气、风格和照片分析...</div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                <div style={{ padding: 14, borderRadius: 14, background: "rgba(236,72,153,.06)", border: "1px solid rgba(236,72,153,.14)", color: "var(--ink)", fontSize: 13, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
+                  {agentResult?.outfit_advice}
+                </div>
+                {agentResult?.image_analysis?.scene_summary && (
+                  <div style={{ padding: 12, borderRadius: 12, background: "var(--bg-sunken)", border: "1px solid var(--border-light)", color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.7 }}>
+                    {agentResult.image_analysis.scene_summary}
+                  </div>
+                )}
+                {(agentResult?.platform_recommendations?.length ?? 0) > 0 && (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {agentResult!.platform_recommendations.map((rec, i) => (
+                      <a key={`${rec.platform}-${i}`} href={rec.url} target="_blank" rel="noopener noreferrer" style={{ padding: "10px 12px", borderRadius: 12, background: "var(--bg-sunken)", border: "1px solid var(--border)", textDecoration: "none" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, fontWeight: 800, color: "var(--ink)" }}>
+                          <span>{rec.title}</span>
+                          <span style={{ color: rec.platform === "douyin" ? "#111827" : "#fe2c55" }}>{rec.label}</span>
+                        </div>
+                        <p style={{ margin: "5px 0 0", color: "var(--text-secondary)", fontSize: 11, lineHeight: 1.6 }}>{rec.reason}</p>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
         </div>
 
         {/* Outfit cards */}
