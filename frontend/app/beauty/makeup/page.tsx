@@ -63,6 +63,8 @@ export default function MakeupPage() {
     setAnalyzing(true); setError(""); setResult(null); setAiMsg("");
 
     const fd = new FormData(); fd.append("file", file);
+    const activeSessionId = readAuthSession().sessionId;
+    if (activeSessionId) fd.append("session_id", activeSessionId);
     try {
       const r = await fetch(`${API_BASE_URL}/face/analyze`, { method: "POST", body: fd });
       const d = await r.json();

@@ -24,6 +24,7 @@ from app.services.extractor import KnowledgeExtractor
 from app.services.graph_store import GraphStore
 from app.services.tree_builder import TreeBuilder
 from app.services.graph_rag import GraphRAGService
+from app.services.user_memory import record_user_event
 from app.config import settings
 from app.routers.auth import get_session
 from app.utils import resolve_owner_mid as _resolve_owner_mid
@@ -1135,6 +1136,7 @@ async def import_url(
 
     source_id = content.bvid
     source_type_str = content.source_type.value if hasattr(content.source_type, 'value') else str(content.source_type)
+    owner_mid = await _resolve_owner_mid(db, request.session_id) if request.session_id else None
 
     # 写入 VideoCache
     result = await db.execute(select(VideoCache).where(VideoCache.bvid == source_id))
@@ -1149,6 +1151,7 @@ async def import_url(
             source_url=fetch_url,
             is_processed=True,
             session_id=request.session_id,
+            data_owner_mid=owner_mid,
         )
         db.add(cache)
     else:
@@ -1157,6 +1160,8 @@ async def import_url(
         cache.source_type = source_type_str
         cache.source_url = fetch_url
         cache.is_processed = True
+        cache.session_id = request.session_id or cache.session_id
+        cache.data_owner_mid = owner_mid if owner_mid is not None else cache.data_owner_mid
 
     await db.flush()
 
@@ -1174,6 +1179,7 @@ async def import_url(
             confidence=seg.get("confidence", 0.8),
             extraction_status="pending",
             session_id=request.session_id,
+            owner_mid=owner_mid,
         )
         db.add(record)
         segment_records.append(record)
@@ -1242,6 +1248,7 @@ async def import_url(
                         "source_count": entity.get("source_count", 1),
                         "review_status": "auto" if entity.get("confidence", 0) >= settings.tree_min_confidence else "pending_review",
                         "session_id": request.session_id,
+                        "owner_mid": owner_mid,
                     })
                     graph.add_node(node.id, **{
                         "node_type": node.node_type,
@@ -1264,6 +1271,7 @@ async def import_url(
                             relation="mentions",
                             confidence=entity.get("confidence", 0.5),
                             session_id=request.session_id,
+                            owner_mid=owner_mid,
                         ))
 
             for rel in relations:
@@ -1286,6 +1294,7 @@ async def import_url(
                         "evidence_video_bvid": source_id,
                         "evidence_segment_id": rel.get("_segment_id"),
                         "session_id": request.session_id,
+                        "owner_mid": owner_mid,
                     })
             node_count = len(entities)
 
@@ -1297,6 +1306,15 @@ async def import_url(
     except Exception as e:
         logger.warning(f"[{source_id}] 知识抽取失败: {e}")
 
+    await record_user_event(
+        db,
+        request.session_id,
+        "content_imported",
+        f"导入{source_type_str}内容",
+        content.title,
+        {"source_id": source_id, "source_type": source_type_str, "node_count": node_count, "url": fetch_url},
+        owner_mid=owner_mid,
+    )
     await db.commit()
 
     return ImportUrlResponse(

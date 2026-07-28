@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import IntelligentBackdrop from "@/components/IntelligentBackdrop";
-import { authApi } from "@/lib/api";
+import { authApi, type UserActivityEvent } from "@/lib/api";
 import { clearAuthSession, readAuthSession } from "@/lib/session";
 
 const Icon = ({ d, size = 20 }: { d: string; size?: number }) => (
@@ -60,6 +60,7 @@ const featureCards = [
 export default function DashboardPage() {
   const [userName, setUserName] = useState("同学");
   const [stats, setStats] = useState({ compiled: 0, nodes: 0, memories: 0 });
+  const [recentEvents, setRecentEvents] = useState<UserActivityEvent[]>([]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -73,6 +74,7 @@ export default function DashboardPage() {
             nodes: state.knowledge_node_count || 0,
             memories: state.memory_node_count || 0,
           });
+          setRecentEvents(state.recent_events || []);
         })
         .catch(() => {});
     }, 0);
@@ -122,6 +124,28 @@ export default function DashboardPage() {
           <div><strong>{stats.compiled}</strong><span>已编译视频</span></div>
           <div><strong>{stats.nodes}</strong><span>知识节点</span></div>
           <div><strong>{stats.memories}</strong><span>记忆节点</span></div>
+        </div>
+      </section>
+
+      <section className="activity-section" aria-label="最近操作">
+        <div className="section-title">
+          <span>Memory Log</span>
+          <h2>你的账号最近记录</h2>
+        </div>
+        <div className="activity-panel">
+          {recentEvents.length > 0 ? recentEvents.slice(0, 6).map((event) => (
+            <div key={event.id} className="activity-item">
+              <div>
+                <strong>{event.title}</strong>
+                <p>{event.summary || "已写入当前账号空间"}</p>
+              </div>
+              <span>{event.date} {event.time}</span>
+            </div>
+          )) : (
+            <div className="activity-empty">
+              当前账号还没有新的操作记录。开始使用学习区、树洞、美美或 Agent 后，这里会自动更新。
+            </div>
+          )}
         </div>
       </section>
 
@@ -250,11 +274,51 @@ export default function DashboardPage() {
         }
         .stats-panel strong { font-size: 28px; color: #059669; }
         .stats-panel span { color: #64748b; font-size: 13px; font-weight: 800; }
-        .feature-section {
+        .activity-section, .feature-section {
           max-width: 1180px;
           margin: 0 auto;
         }
+        .activity-section { margin-top: 22px; }
         .feature-section { margin-top: 22px; padding-bottom: 84px; }
+        .activity-panel {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+        .activity-item, .activity-empty {
+          min-height: 104px;
+          border-radius: 16px;
+          background: rgba(255,255,255,.78);
+          border: 1px solid rgba(255,255,255,.94);
+          box-shadow: 0 14px 34px rgba(15,23,42,.07);
+          backdrop-filter: blur(18px);
+        }
+        .activity-item {
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .activity-item strong { color: #0f172a; font-size: 14px; }
+        .activity-item p {
+          margin: 7px 0 0;
+          color: #64748b;
+          font-size: 12px;
+          line-height: 1.65;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .activity-item span { color: #059669; font-size: 12px; font-weight: 900; }
+        .activity-empty {
+          grid-column: 1 / -1;
+          padding: 22px;
+          color: #64748b;
+          font-size: 14px;
+          line-height: 1.7;
+        }
         .feature-grid {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -306,6 +370,7 @@ export default function DashboardPage() {
         .section-title h2 { font-size: 24px; }
         @media (max-width: 980px) {
           .dashboard-hero { grid-template-columns: 1fr; }
+          .activity-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 560px) {
@@ -315,6 +380,7 @@ export default function DashboardPage() {
           .user-pill { display: none; }
           .dashboard-hero > div:first-child, .stats-panel, .primary-card { border-radius: 18px; }
           .dashboard-hero > div:first-child { padding: 24px; }
+          .activity-panel { grid-template-columns: 1fr; }
           .feature-grid { grid-template-columns: 1fr; }
         }
       `}</style>

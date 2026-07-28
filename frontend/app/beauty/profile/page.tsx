@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import ZoneShell from "@/components/ZoneShell";
 import Link from "next/link";
+import { profileApi } from "@/lib/api";
+import { readAuthSession } from "@/lib/session";
 
 const styleOptions = [
   { value: "casual", label: "休闲", emoji: "👕" },
@@ -27,12 +29,45 @@ export default function ProfilePage() {
     preferences: [] as string[],
   });
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
-    try {
-      const data = localStorage.getItem("zhixi-beauty-profile");
-      if (data) setForm(JSON.parse(data));
-    } catch {}
+    let cancelled = false;
+    const loadProfile = async () => {
+      const sid = readAuthSession().sessionId;
+      try {
+        const cached = localStorage.getItem("zhixi-beauty-profile");
+        if (cached && !cancelled) setForm(JSON.parse(cached));
+      } catch {}
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await profileApi.getPersonal(sid, "beauty");
+        if (!cancelled && res.data && Object.keys(res.data).length > 0) {
+          const next = {
+            gender: String(res.data.gender || ""),
+            height: String(res.data.height || ""),
+            weight: String(res.data.weight || ""),
+            bust: String(res.data.bust || ""),
+            waist: String(res.data.waist || ""),
+            hip: String(res.data.hip || ""),
+            skinTone: String(res.data.skinTone || ""),
+            preferences: Array.isArray(res.data.preferences) ? res.data.preferences as string[] : [],
+          };
+          setForm(next);
+          localStorage.setItem("zhixi-beauty-profile", JSON.stringify(next));
+        }
+      } catch {
+        // 保留本地缓存兜底。
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    loadProfile();
+    return () => { cancelled = true; };
   }, []);
 
   const handleChange = (field: string, value: string) => {
@@ -48,10 +83,21 @@ export default function ProfilePage() {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaveError("");
     localStorage.setItem("zhixi-beauty-profile", JSON.stringify(form));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    const sid = readAuthSession().sessionId;
+    if (!sid) {
+      setSaveError("请先登录账号，才能保存到个人空间。");
+      return;
+    }
+    try {
+      await profileApi.savePersonal(sid, form, "beauty");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e: unknown) {
+      setSaveError(e instanceof Error ? e.message : "保存失败，请稍后重试");
+    }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -86,6 +132,7 @@ export default function ProfilePage() {
           <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: 0 }}>
             完善身体数据，获取更精准的穿搭和妆容推荐
           </p>
+          {loading && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 8 }}>正在读取当前账号档案...</div>}
         </div>
 
         <div
@@ -214,8 +261,13 @@ export default function ProfilePage() {
             {saved ? "✅ 保存成功！" : "💾 保存个人档案"}
           </button>
 
+          {saveError && (
+            <div style={{ fontSize: 12, color: "#ef4444", textAlign: "center", marginTop: 12 }}>
+              {saveError}
+            </div>
+          )}
           <div style={{ fontSize: 12, color: "var(--text-secondary)", textAlign: "center", marginTop: 12 }}>
-            数据仅保存在本地浏览器，不会上传到服务器
+            数据保存到当前登录账号空间，并保留一份本地缓存用于快速恢复
           </div>
         </div>
       </div>

@@ -106,6 +106,19 @@ export interface RestoreStateResponse {
     memory_node_count: number;
     folders: { media_id: number; title: string; media_count: number }[];
     owner_mid: number | null;
+    recent_events?: UserActivityEvent[];
+    personal_profiles?: Record<string, Record<string, unknown> | null>;
+}
+
+export interface UserActivityEvent {
+    id: number;
+    event_type: string;
+    title: string;
+    summary: string;
+    metadata: Record<string, unknown>;
+    created_at: string;
+    date: string;
+    time: string;
 }
 
 export interface CompiledVideoItem {
@@ -1269,6 +1282,22 @@ export const profileApi = {
     ),
   evaluation: (sessionId: string) =>
     request<EvaluationReport>(`/api/profile/evaluation/report?session_id=${sessionId}`),
+  getPersonal: (sessionId: string, profileType = "beauty") =>
+    request<{ session_id: string; owner_mid: number | null; profile_type: string; data: Record<string, any> }>(
+      `/api/profile/personal?session_id=${encodeURIComponent(sessionId)}&profile_type=${encodeURIComponent(profileType)}`
+    ),
+  savePersonal: (sessionId: string, data: Record<string, any>, profileType = "beauty") =>
+    request<{ success: boolean; profile_type: string; owner_mid: number | null; data: Record<string, any>; updated_at?: string | null }>(
+      "/api/profile/personal",
+      {
+        method: "POST",
+        body: JSON.stringify({ session_id: sessionId, profile_type: profileType, data }),
+      }
+    ),
+  activity: (sessionId: string, limit = 20) =>
+    request<{ items: UserActivityEvent[]; count: number; owner_mid: number | null }>(
+      `/api/profile/activity?session_id=${encodeURIComponent(sessionId)}&limit=${limit}`
+    ),
 };
 
 export const collectionApi = {

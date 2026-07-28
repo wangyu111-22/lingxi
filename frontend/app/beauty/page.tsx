@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import ZoneShell from "@/components/ZoneShell";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { profileApi } from "@/lib/api";
+import { readAuthSession } from "@/lib/session";
 
 function Icon({ children, size = 18 }: { children: React.ReactNode; size?: number }) {
   return (
@@ -29,7 +31,22 @@ function readBeautyProfile(): BeautyProfile | null {
 }
 
 export default function BeautyPage() {
-  const [profile] = useState<BeautyProfile | null>(() => readBeautyProfile());
+  const [profile, setProfile] = useState<BeautyProfile | null>(() => readBeautyProfile());
+
+  useEffect(() => {
+    let cancelled = false;
+    const sid = readAuthSession().sessionId;
+    if (!sid) return;
+    profileApi.getPersonal(sid, "beauty")
+      .then((res) => {
+        if (!cancelled && res.data && Object.keys(res.data).length > 0) {
+          setProfile(res.data as BeautyProfile);
+          localStorage.setItem("zhixi-beauty-profile", JSON.stringify(res.data));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <ZoneShell

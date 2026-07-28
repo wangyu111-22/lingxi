@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import ZoneShell from "@/components/ZoneShell";
 import Link from "next/link";
 import { API_BASE_URL } from "@/lib/api";
+import { readAuthSession } from "@/lib/session";
 
 const styleTags = ["休闲", "商务", "运动", "甜美", "酷帅", "优雅", "复古", "街头"];
 
@@ -246,6 +247,8 @@ export default function OutfitPage() {
     setAgentError("");
     try {
       const form = new FormData();
+      const sid = readAuthSession().sessionId;
+      if (sid) form.append("session_id", sid);
       form.append("idea", idea);
       form.append("profile", profile);
       form.append("weather", temp != null ? `${city} ${temp}°C ${conditionText}` : `${city} 天气未知`);

@@ -13,6 +13,7 @@ from app.routers.auth import get_session
 from app.services.beauty_recommendations import build_beauty_recommendations, build_outfit_recommendations
 from app.services.beauty_vision import analyze_beauty_image, get_vision_status
 from app.services.llm_provider import create_async_client, get_model_name
+from app.services.user_memory import record_user_event
 from app.utils import resolve_owner_mid
 
 router = APIRouter(prefix="/beauty", tags=["美美区域"])
@@ -109,6 +110,15 @@ async def analyze_capture(
         style_advice=analysis["style_advice"],
     )
     db.add(item)
+    await record_user_event(
+        db,
+        session_id,
+        "beauty_capture_analyzed",
+        "完成美美实时分析",
+        analysis.get("style_advice", "")[:300],
+        {"filename": filename, "scene": scene, "file_size": len(content)},
+        owner_mid=owner_mid,
+    )
     await db.commit()
     await db.refresh(item)
     recommendations = build_beauty_recommendations(analysis, scene)
@@ -117,11 +127,13 @@ async def analyze_capture(
 
 @router.post("/outfit/analyze")
 async def analyze_outfit(
+    session_id: str = Form(""),
     idea: str = Form(""),
     profile: str = Form(""),
     weather: str = Form(""),
     styles: str = Form(""),
     file: UploadFile | None = File(None),
+    db: AsyncSession = Depends(get_db),
 ):
     content_parts = [
         f"用户想法：{idea.strip() or '未填写'}",
@@ -142,6 +154,18 @@ async def analyze_outfit(
             )
     outfit_advice = await _generate_outfit_advice(context, image_analysis)
     recommendation_context = "\n".join([context, outfit_advice, image_analysis.get("style_advice", "") if image_analysis else ""])
+    if session_id and await get_session(session_id):
+        owner_mid = await resolve_owner_mid(db, session_id)
+        await record_user_event(
+            db,
+            session_id,
+            "outfit_agent_used",
+            "使用智慧穿搭 Agent",
+            outfit_advice[:300],
+            {"idea": idea[:200], "weather": weather[:100], "styles": styles, "has_photo": file is not None},
+            owner_mid=owner_mid,
+        )
+        await db.commit()
     return {
         "success": True,
         "outfit_advice": outfit_advice,

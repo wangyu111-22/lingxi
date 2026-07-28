@@ -11,6 +11,7 @@ from sqlalchemy import select, text as sql_text
 from app.database import get_db, get_db_context
 from app.models import QRCodeResponse, LoginStatusResponse, UserSession as UserSessionModel, LingxiAccount
 from app.services.bilibili import BilibiliService
+from app.services.user_memory import get_personal_profile, list_recent_events, record_user_event
 from datetime import datetime, timedelta
 import hashlib
 import hmac
@@ -168,6 +169,8 @@ async def _migrate_session_scoped_data(
         "chat_messages",
         "memory_nodes",
         "memory_edges",
+        "user_activity_events",
+        "user_personal_profiles",
     ]
     for old_sid in old_session_ids:
         for table_name in tables:
@@ -381,6 +384,16 @@ async def register_account(payload: AccountRegisterRequest, db: AsyncSession = D
     account.owner_mid = -(10_000_000 + account.id)
 
     session_id, user_info = await _create_account_session(db, account)
+    await record_user_event(
+        db,
+        session_id,
+        "account_registered",
+        "注册灵犀账号",
+        f"{username} 创建了自己的灵犀账号空间。",
+        {"phone_tail": phone[-4:]},
+        owner_mid=account.owner_mid,
+    )
+    await db.commit()
     return {
         "session_id": session_id,
         "user_info": user_info,
@@ -404,6 +417,16 @@ async def login_account(payload: AccountLoginRequest, db: AsyncSession = Depends
         raise HTTPException(status_code=401, detail="手机号或密码错误")
 
     session_id, user_info = await _create_account_session(db, account)
+    await record_user_event(
+        db,
+        session_id,
+        "login",
+        "登录灵犀账号",
+        "恢复当前账号的学习、情绪、美美和 Agent 历史。",
+        {"phone_tail": phone[-4:]},
+        owner_mid=account.owner_mid,
+    )
+    await db.commit()
     return {
         "session_id": session_id,
         "user_info": user_info,
@@ -610,6 +633,14 @@ async def logout(session_id: str):
         db_session = result.scalar_one_or_none()
         if db_session:
             db_session.is_valid = False
+            await record_user_event(
+                db,
+                session_id,
+                "logout",
+                "退出登录",
+                "用户主动退出当前账号。",
+                owner_mid=db_session.bili_mid,
+            )
             await db.commit()
     
     return {"message": "已退出登录"}
@@ -710,6 +741,10 @@ async def restore_user_state(
         {"media_id": f.media_id, "title": f.title, "media_count": f.media_count}
         for f in ff_result.scalars().all()
     ]
+    recent_events = await list_recent_events(db, session_id, limit=20, owner_mid=owner_mid)
+    personal_profiles = {
+        "beauty": await get_personal_profile(db, session_id, "beauty", owner_mid=owner_mid),
+    }
 
     return {
         "compiled_videos": compiled_videos,
@@ -721,6 +756,8 @@ async def restore_user_state(
         "memory_node_count": mem_count,
         "folders": folders,
         "owner_mid": owner_mid,
+        "recent_events": recent_events,
+        "personal_profiles": personal_profiles,
     }
 
 
@@ -757,6 +794,14 @@ async def login_as_demo(db: AsyncSession = Depends(get_db)):
         db.add(db_session)
 
     await _ensure_demo_workspace_seed(db, session_id)
+    await record_user_event(
+        db,
+        session_id,
+        "demo_login",
+        "进入演示账号",
+        "打开演示账号空间，体验灵犀完整功能。",
+        owner_mid=0,
+    )
     await db.commit()
 
     # 缓存到内存

@@ -13,6 +13,7 @@ from app.database import get_db
 from app.models import EmotionEntry
 from app.routers.auth import get_session
 from app.services.llm_provider import create_async_client, get_model_name
+from app.services.user_memory import record_user_event
 from app.utils import resolve_owner_mid
 
 router = APIRouter(prefix="/emotion", tags=["心理树洞"])
@@ -111,6 +112,16 @@ async def create_entry(req: EmotionCreateRequest, db: AsyncSession = Depends(get
         entry_type=req.entry_type if req.entry_type in {"journal", "chat"} else "journal",
     )
     db.add(entry)
+    event_title = "心理树洞聊天" if entry.entry_type == "chat" else "记录心理树洞日记"
+    await record_user_event(
+        db,
+        req.session_id,
+        "emotion_chat" if entry.entry_type == "chat" else "emotion_journal_saved",
+        event_title,
+        (entry.ai_reply or entry.content)[:300],
+        {"mood": req.mood, "mood_emoji": req.mood_emoji, "entry_type": entry.entry_type},
+        owner_mid=owner_mid,
+    )
     await db.commit()
     await db.refresh(entry)
     return _entry_to_dict(entry)

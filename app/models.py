@@ -571,6 +571,33 @@ class BeautyVideoAnalysis(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class UserActivityEvent(Base):
+    """账号级操作历史：记录用户在各功能区的关键行为。"""
+    __tablename__ = 'user_activity_events'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), index=True, nullable=False)
+    owner_mid = Column(Integer, index=True, nullable=True)
+    event_type = Column(String(60), index=True, nullable=False)
+    title = Column(String(200), nullable=False)
+    summary = Column(Text, nullable=True)
+    metadata_json = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class UserPersonalProfile(Base):
+    """账号级个人资料：保存各功能区需要长期记忆的用户信息。"""
+    __tablename__ = 'user_personal_profiles'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), index=True, nullable=False)
+    owner_mid = Column(Integer, index=True, nullable=True)
+    profile_type = Column(String(40), index=True, nullable=False)
+    data_json = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class ConversationResponse(BaseModel):
     """对话列表响应"""
     id: int

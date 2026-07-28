@@ -11,7 +11,7 @@
 
 数据聚合自 SRS / Game / Memory / Favorites / Knowledge 五大模块。
 """
-from typing import Optional
+from typing import Any, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +22,13 @@ from app.models import (
     SRSRecord, GameScore, MemoryNode, KnowledgeNode,
     Concept, UserCollection, FavoriteFolder, VideoCache,
 )
+from app.routers.auth import get_session
+from app.services.user_memory import (
+    get_personal_profile,
+    list_recent_events,
+    record_user_event,
+    upsert_personal_profile,
+)
 from app.utils import resolve_owner_mid
 
 router = APIRouter(prefix="/api/profile", tags=["学生画像"])
@@ -30,6 +37,73 @@ router = APIRouter(prefix="/api/profile", tags=["学生画像"])
 class ProfileDialogRequest(BaseModel):
     session_id: str
     message: str  # 用户自然语言输入
+
+
+class PersonalProfileRequest(BaseModel):
+    session_id: str
+    profile_type: str = "beauty"
+    data: dict[str, Any]
+
+
+@router.get("/personal")
+async def read_personal_profile(
+    session_id: str = Query(...),
+    profile_type: str = Query("beauty"),
+    db: AsyncSession = Depends(get_db),
+):
+    """读取当前账号的长期个人资料。"""
+    if not await get_session(session_id):
+        raise HTTPException(status_code=401, detail="会话无效或已过期")
+    owner_mid = await resolve_owner_mid(db, session_id)
+    data = await get_personal_profile(db, session_id, profile_type, owner_mid=owner_mid)
+    return {"session_id": session_id, "owner_mid": owner_mid, "profile_type": profile_type, "data": data or {}}
+
+
+@router.post("/personal")
+async def save_personal_profile(req: PersonalProfileRequest, db: AsyncSession = Depends(get_db)):
+    """保存当前账号的长期个人资料。"""
+    if not await get_session(req.session_id):
+        raise HTTPException(status_code=401, detail="会话无效或已过期")
+    owner_mid = await resolve_owner_mid(db, req.session_id)
+    row = await upsert_personal_profile(
+        db,
+        req.session_id,
+        req.profile_type,
+        req.data,
+        owner_mid=owner_mid,
+    )
+    await record_user_event(
+        db,
+        req.session_id,
+        f"{req.profile_type}_profile_saved",
+        "更新个人档案",
+        "个人资料已保存到当前账号空间。",
+        {"profile_type": req.profile_type},
+        owner_mid=owner_mid,
+    )
+    await db.commit()
+    await db.refresh(row)
+    return {
+        "success": True,
+        "profile_type": row.profile_type,
+        "owner_mid": row.owner_mid,
+        "data": row.data_json or {},
+        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+    }
+
+
+@router.get("/activity")
+async def read_recent_activity(
+    session_id: str = Query(...),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """读取当前账号最近操作历史。"""
+    if not await get_session(session_id):
+        raise HTTPException(status_code=401, detail="会话无效或已过期")
+    owner_mid = await resolve_owner_mid(db, session_id)
+    events = await list_recent_events(db, session_id, limit=limit, owner_mid=owner_mid)
+    return {"items": events, "count": len(events), "owner_mid": owner_mid}
 
 
 def _score_to_level(score: float) -> str:

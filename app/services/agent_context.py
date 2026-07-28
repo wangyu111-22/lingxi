@@ -21,11 +21,14 @@ from app.models import (
     UserCollection,
     VideoCache,
 )
+from app.services.user_memory import get_personal_profile, list_recent_events
 from app.utils import resolve_owner_mid
 
 
 def _owner_filter(model: Any, owner_mid: int | None, session_id: str | None):
     if owner_mid is not None:
+        if hasattr(model, "data_owner_mid"):
+            return model.data_owner_mid == owner_mid
         return model.owner_mid == owner_mid
     if session_id and hasattr(model, "session_id"):
         return model.session_id == session_id
@@ -95,6 +98,8 @@ async def build_agent_context(
     elif session_id:
         recent_stmt = recent_stmt.where(Conversation.session_id == session_id)
     recent_messages = [r[0] for r in (await db.execute(recent_stmt)).all()]
+    recent_events = await list_recent_events(db, session_id, limit=6, owner_mid=owner_mid) if session_id else []
+    beauty_profile = await get_personal_profile(db, session_id, "beauty", owner_mid=owner_mid) if session_id else None
 
     score_stmt = select(GameScore).order_by(GameScore.updated_at.desc()).limit(1)
     if session_id:
@@ -130,7 +135,11 @@ async def build_agent_context(
             "due_reviews": due_reviews,
             "weak_points": weak_points,
         },
-        "memory": {"nodes": memory_count, "recent_user_messages": recent_messages},
+        "memory": {
+            "nodes": memory_count,
+            "recent_user_messages": recent_messages,
+            "recent_events": recent_events,
+        },
         "emotion_space": {
             "entries": emotion_entries,
             "state": "需要关怀" if period in ["深夜", "晚间"] else "稳定",
@@ -138,6 +147,7 @@ async def build_agent_context(
         "beauty": {
             "analyses": beauty_analyses,
             "capability": "照片/实时相机分析、穿搭与妆容建议",
+            "profile": beauty_profile or {},
         },
         "home": {
             "capability": "小家、花园、宠物、农场状态管理",

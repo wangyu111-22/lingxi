@@ -1,17 +1,26 @@
 """
 面部分析路由 - 接受图片上传，AI 分析面部特征并推荐妆容
 """
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import get_db
+from app.routers.auth import get_session
 from app.services.beauty_recommendations import build_beauty_recommendations
 from app.services.beauty_vision import analyze_beauty_image
+from app.services.user_memory import record_user_event
+from app.utils import resolve_owner_mid
 
 router = APIRouter(prefix="/face", tags=["面部分析"])
 
 
 @router.post("/analyze")
-async def analyze_face(file: UploadFile = File(...)):
+async def analyze_face(
+    file: UploadFile = File(...),
+    session_id: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+):
     """上传照片，AI 分析面部特征并返回妆容推荐"""
     try:
         contents = await file.read()
@@ -41,6 +50,22 @@ async def analyze_face(file: UploadFile = File(...)):
             file.content_type,
         )
         platform_recommendations = build_beauty_recommendations(ai_analysis, f"{face_shape} 妆容分析")
+        if session_id and await get_session(session_id):
+            owner_mid = await resolve_owner_mid(db, session_id)
+            await record_user_event(
+                db,
+                session_id,
+                "makeup_photo_analyzed",
+                "完成妆容照片分析",
+                (ai_analysis.get("style_advice") or "")[:300],
+                {
+                    "filename": file.filename or "makeup-upload.jpg",
+                    "image_size": f"{w}x{h}",
+                    "face_shape": face_shape,
+                },
+                owner_mid=owner_mid,
+            )
+            await db.commit()
 
         # 生成分析结果
         return {
