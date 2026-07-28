@@ -1099,6 +1099,22 @@ export interface BeautyVideoAnalysis {
   time: string;
   created_at: string;
   recommendations?: BeautyPlatformRecommendation[];
+  makeup_analysis?: {
+    filename?: string;
+    image_size: string;
+    ratio: number;
+    face_shape: string;
+    features: {
+      jaw: string;
+      cheekbones: string;
+      forehead?: string;
+    };
+  } | null;
+  makeup_recommendations?: Array<{
+    name: string;
+    suitable: boolean;
+    style: string;
+  }>;
 }
 
 export interface BeautyPlatformRecommendation {

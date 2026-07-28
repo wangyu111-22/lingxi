@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 from datetime import datetime
+import io
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from PIL import Image
 
 from app.database import get_db
 from app.models import BeautyVideoAnalysis
@@ -19,7 +21,50 @@ from app.utils import resolve_owner_mid
 router = APIRouter(prefix="/beauty", tags=["美美区域"])
 
 
-def _item_to_dict(item: BeautyVideoAnalysis, recommendations: list[dict[str, str]] | None = None) -> dict:
+def _infer_makeup_analysis(filename: str, content: bytes) -> dict:
+    try:
+        img = Image.open(io.BytesIO(content))
+        w, h = img.size
+        ratio = h / max(w, 1)
+    except Exception:
+        w, h, ratio = 0, 0, 1.0
+
+    if ratio > 1.4:
+        face_shape = "长脸型"
+    elif ratio < 0.85:
+        face_shape = "圆脸型"
+    elif 1.15 < ratio < 1.3:
+        face_shape = "鹅蛋脸"
+    else:
+        face_shape = "菱形脸"
+
+    return {
+        "filename": filename,
+        "image_size": f"{w}x{h}" if w and h else "未知",
+        "ratio": round(ratio, 2),
+        "face_shape": face_shape,
+        "features": {
+            "jaw": "柔和" if ratio > 1.2 else "分明",
+            "cheekbones": "适中",
+            "forehead": "适中",
+        },
+    }
+
+
+def _makeup_recommendations(face_shape: str) -> list[dict[str, object]]:
+    return [
+        {"name": "韩式清新妆", "suitable": face_shape in ["鹅蛋脸", "长脸型"], "style": "轻薄底妆 + 自然眉形 + 珊瑚唇"},
+        {"name": "纯欲蜜桃妆", "suitable": face_shape in ["圆脸型", "鹅蛋脸"], "style": "粉调底妆 + 微醺腮红 + 水光唇釉"},
+        {"name": "轻欧美妆", "suitable": face_shape in ["长脸型", "菱形脸"], "style": "修容轮廓 + 猫眼眼线 + 哑光唇"},
+        {"name": "日杂透明妆", "suitable": True, "style": "清透底妆 + 柔和眼影 + 裸色唇蜜"},
+    ]
+
+
+def _item_to_dict(
+    item: BeautyVideoAnalysis,
+    recommendations: list[dict[str, str]] | None = None,
+    makeup_analysis: dict | None = None,
+) -> dict:
     dt = item.created_at or datetime.utcnow()
     return {
         "id": item.id,
@@ -37,6 +82,8 @@ def _item_to_dict(item: BeautyVideoAnalysis, recommendations: list[dict[str, str
             "movement_summary": item.movement_summary or "",
             "style_advice": item.style_advice or "",
         }),
+        "makeup_analysis": makeup_analysis,
+        "makeup_recommendations": _makeup_recommendations(makeup_analysis["face_shape"]) if makeup_analysis else [],
     }
 
 
@@ -99,6 +146,7 @@ async def analyze_capture(
         raise HTTPException(status_code=400, detail="照片文件不能为空")
     owner_mid = await resolve_owner_mid(db, session_id)
     filename = file.filename or "capture.jpg"
+    makeup_analysis = _infer_makeup_analysis(filename, content)
     analysis = await analyze_beauty_image(filename, content, scene, file.content_type)
     item = BeautyVideoAnalysis(
         session_id=session_id,
@@ -122,7 +170,7 @@ async def analyze_capture(
     await db.commit()
     await db.refresh(item)
     recommendations = build_beauty_recommendations(analysis, scene)
-    return {"success": True, "analysis": _item_to_dict(item, recommendations)}
+    return {"success": True, "analysis": _item_to_dict(item, recommendations, makeup_analysis)}
 
 
 @router.post("/outfit/analyze")

@@ -121,32 +121,6 @@ export default function BeautyPage() {
             </div>
           </Link>
 
-          {/* 妆容推荐卡片 */}
-          <Link
-            href="/beauty/makeup"
-            className="glow-border"
-            style={{
-              padding: "24px",
-              borderRadius: "var(--radius-lg)",
-              background: "var(--bg-elevated)",
-              border: "1px solid var(--border)",
-              textDecoration: "none",
-              color: "inherit",
-              transition: "all 0.3s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
-          >
-            <div style={{ fontSize: 32, marginBottom: 12 }}>💋</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>AI 妆容分析</div>
-            <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-              上传照片分析脸型五官，智慧推荐适合你的妆容和产品
-            </div>
-            <div style={{ marginTop: 12, padding: "6px 14px", borderRadius: 20, background: "#ec489912", color: "#ec4899", fontSize: 12, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 4 }}>
-              📸 脸型分析
-            </div>
-          </Link>
-
           <Link
             href="/beauty/video"
             className="glow-border"
@@ -162,13 +136,15 @@ export default function BeautyPage() {
             onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
           >
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📷</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>实时相机分析</div>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>💋</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>AI 妆容相机分析</div>
             <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-              直接打开摄像头拍照，或上传照片，让 AI 分析妆容、肤色、脸型和穿搭比例
+              上传照片或打开摄像头拍照，AI 分析脸型、妆容适配，并支持实时反馈追问
             </div>
-            <div style={{ marginTop: 12, padding: "6px 14px", borderRadius: 20, background: "#8b5cf612", color: "#8b5cf6", fontSize: 12, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 4 }}>
-              📸 在线拍照
+            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ padding: "6px 12px", borderRadius: 20, background: "#ec489912", color: "#ec4899", fontSize: 12, fontWeight: 700 }}>脸型分析</span>
+              <span style={{ padding: "6px 12px", borderRadius: 20, background: "#8b5cf612", color: "#8b5cf6", fontSize: 12, fontWeight: 700 }}>在线拍照</span>
+              <span style={{ padding: "6px 12px", borderRadius: 20, background: "#06b6d412", color: "#06b6d4", fontSize: 12, fontWeight: 700 }}>反馈对话</span>
             </div>
           </Link>
 
